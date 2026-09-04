@@ -1,0 +1,58 @@
+{
+  "format": "superdex-camera-calibration-v1",
+  "camera": {
+    "name": "desk_zed",
+    "model": "ZED-M",
+    "serial_configuration": "SN10028827.conf",
+    "optical_frame": "OpenCV: +X right, +Y down, +Z forward"
+  },
+  "provenance": {
+    "calibrated_utc": "2026-08-25T18:22:31.659566+00:00",
+    "source_fit": "~/sessions-robot/calibration/fit_right_zeros.json",
+    "source_observations": "~/sessions-robot/calibration/tag_poses.jsonl",
+    "method": "AprilTag grid fit followed by base-tag camera re-anchoring",
+    "reanchor_records": 3,
+    "reanchor_translation_spread_mm": 4.592613417220108,
+    "fit_position_rms_mm": 4.033808105720757,
+    "fit_rotation_rms_deg": 0.5425255565762346
+  },
+  "intrinsics": {
+    "width_px": 1280,
+    "height_px": 720,
+    "fx_px": 682.3174438476562,
+    "fy_px": 682.3174438476562,
+    "cx_px": 620.668212890625,
+    "cy_px": 352.37591552734375
+  },
+  "robot_base_from_camera_cv": {
+    "position_m": [
+      0.46337051759829756,
+      -0.009590990945802494,
+      0.8891425001439487
+    ],
+    "rotation_matrix": [
+      [-0.0163219767640638, 0.9602177118872536, -0.27877506856338696],
+      [0.9997098663320904, 0.02061174144192443, 0.012463517681849778],
+      [0.017713730064215394, -0.2784907572842212, -0.9602755447653937]
+    ],
+    "right_world": [-0.0163219767640638, 0.9997098663320904, 0.017713730064215394],
+    "up_world": [-0.9602177118872536, -0.02061174144192443, 0.2784907572842212],
+    "forward_world": [-0.27877506856338696, 0.012463517681849778, -0.9602755447653937]
+  },
+  "simulation_world_from_camera_cv": {
+    "mapping": "robot base calibration translated by scenario.ROBOT_ROOT_POSITION",
+    "position_m": [
+      0.01337051759829755,
+      -0.009590990945802494,
+      0.8891425001439487
+    ],
+    "right_world": [-0.0163219767640638, 0.9997098663320904, 0.017713730064215394],
+    "up_world": [-0.9602177118872536, -0.02061174144192443, 0.2784907572842212],
+    "forward_world": [-0.27877506856338696, 0.012463517681849778, -0.9602755447653937]
+  },
+  "desk_reference": {
+    "physical_desk_top_in_robot_base_m": 0.363,
+    "scenario_desk_top_in_robot_base_m": 0.388,
+    "pose_mapping_choice": "Preserve the calibrated camera-to-robot transform exactly."
+  }
+}

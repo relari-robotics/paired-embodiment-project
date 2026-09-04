@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenArm · Ball to Bowl</title>
+    <link rel="stylesheet" href="./viewer.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main id="viewport" aria-label="OpenArm physics replay"></main>
+    <section class="title-card">
+      <p class="eyebrow">MOCHI PHYSICS · PBR REPLAY</p>
+      <h1>OpenArm <span>ball to bowl</span></h1>
+      <p>Desk ZED + dual wrist cameras · right arm control · collision-aware motion</p>
+    </section>
+    <section class="controls" aria-label="Replay controls">
+      <button id="play" type="button" aria-label="Pause replay">Ⅱ</button>
+      <label class="timeline">
+        <span id="time">0:00 / 0:00</span>
+        <input id="scrubber" type="range" min="0" max="1" step="0.0001" value="0" />
+      </label>
+      <button id="speed" type="button" aria-label="Playback speed">1×</button>
+      <button id="camera" type="button" aria-label="Reset camera">Desk ZED</button>
+    </section>
+    <div id="loading" role="status">
+      <div class="spinner"></div>
+      <p>Loading PBR assets…</p>
+    </div>
+    <div id="error" role="alert"></div>
+    <script type="module" src="./viewer.js"></script>
+  </body>
+</html>

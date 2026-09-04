@@ -1,0 +1,1474 @@
+{
+  "actors": {
+    "articulated": [
+      {
+        "joints": [
+          {
+            "name": "world_joint",
+            "type": "Hard"
+          },
+          {
+            "name": "openarm_body_link0_mount_joint",
+            "type": "Hard"
+          },
+          {
+            "name": "openarm_left_base_link_mount_joint",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0.029999999329447746,
+                0.69700002670288086
+              ]
+            },
+            "type": "Hard"
+          },
+          {
+            "name": "torso_to_left_arm",
+            "type": "Hard"
+          },
+          {
+            "axis": [
+              0,
+              1,
+              0
+            ],
+            "friction": {
+              "coulomb": 4.8000001907348633,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 1.6000000238418579
+            },
+            "maxLimit": [
+              0,
+              1.3962999582290649,
+              0
+            ],
+            "minLimit": [
+              0,
+              -3.4907000064849854,
+              0
+            ],
+            "name": "arm_openarm_left_joint1",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0.0625,
+                0
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -1,
+              0,
+              0
+            ],
+            "friction": {
+              "coulomb": 4.8000001907348633,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 1.6000000238418579
+            },
+            "maxLimit": [
+              -0.17452999949455261,
+              0,
+              0
+            ],
+            "minLimit": [
+              3.3160998821258545,
+              0,
+              0
+            ],
+            "name": "arm_openarm_left_joint2",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0.059999998658895493,
+                0
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "friction": {
+              "coulomb": 3.2400000095367432,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 1.0800000429153442
+            },
+            "maxLimit": [
+              0,
+              0,
+              -1.5707999467849731
+            ],
+            "minLimit": [
+              0,
+              0,
+              1.5707999467849731
+            ],
+            "name": "arm_openarm_left_joint3",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.066249996423721313
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              -1,
+              0
+            ],
+            "friction": {
+              "coulomb": 3.2400000095367432,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 1.0800000429153442
+            },
+            "maxLimit": [
+              0,
+              -2.4435000419616699,
+              0
+            ],
+            "minLimit": [
+              0,
+              0,
+              0
+            ],
+            "name": "arm_openarm_left_joint4",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.15375000238418579
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "friction": {
+              "coulomb": 0.8399999737739563,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 0.2800000011920929
+            },
+            "maxLimit": [
+              0,
+              0,
+              -1.5707999467849731
+            ],
+            "minLimit": [
+              0,
+              0,
+              1.5707999467849731
+            ],
+            "name": "arm_openarm_left_joint5",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.095499999821186066
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              -1,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.8399999737739563,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 0.2800000011920929
+            },
+            "maxLimit": [
+              0,
+              -0.78539997339248657,
+              0
+            ],
+            "minLimit": [
+              0,
+              0.78539997339248657,
+              0
+            ],
+            "name": "arm_openarm_left_joint6",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.12049999833106995
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              1,
+              0,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.8399999737739563,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 0.2800000011920929
+            },
+            "maxLimit": [
+              1.5707999467849731,
+              0,
+              0
+            ],
+            "minLimit": [
+              -1.5707999467849731,
+              0,
+              0
+            ],
+            "name": "arm_openarm_left_joint7",
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -1,
+              0,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.8399999737739563,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 0.2800000011920929
+            },
+            "maxLimit": [
+              -0.78539997339248657,
+              0,
+              0
+            ],
+            "minLimit": [
+              0,
+              0,
+              0
+            ],
+            "name": "openarm_left_finger_joint1",
+            "parentLinkFromJoint": {
+              "translation": [
+                -0.0014299999456852674,
+                -0.017999999225139618,
+                -0.068000003695487976
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              1,
+              0,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.8399999737739563,
+              "falloffVel": 0.0020000000949949026,
+              "viscous": 0.2800000011920929
+            },
+            "maxLimit": [
+              0.78539997339248657,
+              0,
+              0
+            ],
+            "minLimit": [
+              0,
+              0,
+              0
+            ],
+            "name": "openarm_left_finger_joint2",
+            "parentLinkFromJoint": {
+              "translation": [
+                -0.0014299999456852674,
+                0.017999999225139618,
+                -0.068000003695487976
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "name": "site_left_camera_joint",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.67620956897735596,
+                -0.70538431406021118,
+                0.049325276166200638,
+                0.20673801004886627
+              ],
+              "translation": [
+                0.017336238175630569,
+                0.017152644693851471,
+                -0.10508793592453003
+              ]
+            },
+            "type": "Hard"
+          },
+          {
+            "name": "openarm_right_base_link_mount_joint",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                -0.029999999329447746,
+                0.69700002670288086
+              ]
+            },
+            "type": "Hard"
+          },
+          {
+            "name": "torso_to_right_arm",
+            "type": "Hard"
+          },
+          {
+            "axis": [
+              0,
+              -1,
+              0
+            ],
+            "maxLimit": [
+              0,
+              -3.4907000064849854,
+              0
+            ],
+            "minLimit": [
+              0,
+              1.3962999582290649,
+              0
+            ],
+            "name": "arm_openarm_right_joint1",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                -0.0625,
+                0
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -1,
+              0,
+              0
+            ],
+            "maxLimit": [
+              -3.3160998821258545,
+              0,
+              0
+            ],
+            "minLimit": [
+              0.17452999949455261,
+              0,
+              0
+            ],
+            "name": "arm_openarm_right_joint2",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                -0.059999998658895493,
+                0
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "maxLimit": [
+              0,
+              0,
+              -1.5707999467849731
+            ],
+            "minLimit": [
+              0,
+              0,
+              1.5707999467849731
+            ],
+            "name": "arm_openarm_right_joint3",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.066249996423721313
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              -1,
+              0
+            ],
+            "maxLimit": [
+              0,
+              -2.4435000419616699,
+              0
+            ],
+            "minLimit": [
+              0,
+              0,
+              0
+            ],
+            "name": "arm_openarm_right_joint4",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.15375000238418579
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "maxLimit": [
+              0,
+              0,
+              -1.5707999467849731
+            ],
+            "minLimit": [
+              0,
+              0,
+              1.5707999467849731
+            ],
+            "name": "arm_openarm_right_joint5",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.095499999821186066
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              1,
+              0
+            ],
+            "maxLimit": [
+              0,
+              0.78539997339248657,
+              0
+            ],
+            "minLimit": [
+              0,
+              -0.78539997339248657,
+              0
+            ],
+            "name": "arm_openarm_right_joint6",
+            "parentLinkFromJoint": {
+              "translation": [
+                0,
+                0,
+                -0.12049999833106995
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              1,
+              0,
+              0
+            ],
+            "maxLimit": [
+              1.5707999467849731,
+              0,
+              0
+            ],
+            "minLimit": [
+              -1.5707999467849731,
+              0,
+              0
+            ],
+            "name": "arm_openarm_right_joint7",
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -1,
+              0,
+              0
+            ],
+            "maxLimit": [
+              0,
+              0,
+              0
+            ],
+            "minLimit": [
+              0.78539997339248657,
+              0,
+              0
+            ],
+            "name": "openarm_right_finger_joint1",
+            "parentLinkFromJoint": {
+              "translation": [
+                -0.0014299999456852674,
+                0.017999999225139618,
+                -0.068000003695487976
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              1,
+              0,
+              0
+            ],
+            "maxLimit": [
+              0,
+              0,
+              0
+            ],
+            "minLimit": [
+              -0.78539997339248657,
+              0,
+              0
+            ],
+            "name": "openarm_right_finger_joint2",
+            "parentLinkFromJoint": {
+              "translation": [
+                -0.0014299999456852674,
+                -0.017999999225139618,
+                -0.068000003695487976
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "name": "site_right_camera_joint",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.70538431406021118,
+                -0.67620956897735596,
+                -0.20673801004886627,
+                -0.049325276166200638
+              ],
+              "translation": [
+                0.017336238175630569,
+                -0.017152545973658562,
+                -0.10508789867162704
+              ]
+            },
+            "type": "Hard"
+          }
+        ],
+        "links": [
+          {
+            "colliderType": "None",
+            "name": "world"
+          },
+          {
+            "colliderType": "Sdf",
+            "name": "openarm_body_link0",
+            "parentLink": 0,
+            "renderModel": "./render/robot/01_openarm_body_link0.glb",
+            "shape": "./generated_assets/openarm_v20_openarm_body_link0.mochi.h5"
+          },
+          {
+            "colliderType": "None",
+            "name": "openarm_left_base_link",
+            "parentLink": 1
+          },
+          {
+            "colliderType": "Sdf",
+            "name": "arm_openarm_left_base_link",
+            "parentLink": 2,
+            "renderModel": "./render/robot/03_arm_openarm_left_base_link.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_left_base_link.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.00090035033645108342,
+              0.044465970247983932,
+              2.8844102416769601e-05
+            ],
+            "colliderType": "Sdf",
+            "density": 1828.311279296875,
+            "hasGravity": false,
+            "momentOfInertia": [
+              0.0010943212546408176,
+              -9.4162869572755881e-06,
+              4.5342218868427153e-08,
+              0.00075919972732663155,
+              -6.6675568177743116e-08,
+              0.00067065918119624257
+            ],
+            "name": "arm_openarm_left_link1",
+            "parentLink": 3,
+            "renderModel": "./render/robot/04_arm_openarm_left_link1.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_left_link1.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.024718493223190308,
+              -7.605783736153171e-08,
+              -0.031264308840036392
+            ],
+            "colliderType": "Sdf",
+            "density": 1364.0634765625,
+            "hasGravity": false,
+            "momentOfInertia": [
+              0.00015358882956206799,
+              2.944225974133019e-10,
+              5.2105606300756335e-06,
+              0.00011306218220852315,
+              -3.758169053735827e-10,
+              8.2299935456831008e-05
+            ],
+            "name": "arm_openarm_left_link2",
+            "parentLink": 4,
+            "renderModel": "./render/robot/05_arm_openarm_left_link2.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_left_link2.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.0030086180195212364,
+              -0.00051481329137459397,
+              -0.10936824232339859
+            ],
+            "colliderType": "Sdf",
+            "density": 2052.88232421875,
+            "hasGravity": false,
+            "momentOfInertia": [
+              0.0012893963139504194,
+              -2.2995104131950939e-07,
+              -6.7616194428410381e-05,
+              0.0011401899391785264,
+              -1.0626080438669305e-05,
+              0.00055976549629122019
+            ],
+            "name": "arm_openarm_left_link3",
+            "parentLink": 5,
+            "renderModel": "./render/robot/06_arm_openarm_left_link3.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_left_link3.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.0031032625120133162,
+              -0.0013653897913172841,
+              -0.057460136711597443
+            ],
+            "colliderType": "Sdf",
+            "density": 1061.43359375,
+            "hasGravity": false,
+            "momentOfInertia": [
+              0.00046900360030122101,
+              5.6362691793765407e-06,
+              -1.778779960659449e-06,
+              0.00043392626685090363,
+              3.4175780001532985e-06,
+              0.0002452114422339946
+            ],
+            "name": "arm_openarm_left_link4",
+            "parentLink": 6,
+            "renderModel": "./render/robot/07_arm_openarm_left_link4.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_left_link4.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.00073718855855986476,
+              0.00041240654536522925,
+              -0.047093827277421951
+            ],
+            "colliderType": "Sdf",
+            "density": 1635.6121826171875,
+            "hasGravity": false,
+            "momentOfInertia": [
+              0.00027965338085778058,
+              -3.317452865303494e-06,
+              7.6809732263427577e-07,
+              0.00033459963742643595,
+              1.4993440800026292e-07,
+              0.00017666246276348829
+            ],
+            "name": "arm_openarm_left_link5",
+            "parentLink": 7,
+            "renderModel": "./render/robot/08_arm_openarm_left_link5.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_left_link5.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              2.2743843146599829e-05,
+              -0.00068649603053927422,
+              5.4400050430558622e-05
+            ],
+            "colliderType": "Sdf",
+            "density": 3353.55517578125,
+            "hasGravity": false,
+            "momentOfInertia": [
+              0.00017927594308275729,
+              -6.584393474895478e-08,
+              -3.3710115587837208e-08,
+              0.00013624751591123641,
+              -3.3225358464505916e-08,
+              0.0001353406987618655
+            ],
+            "name": "arm_openarm_left_link6",
+            "parentLink": 8,
+            "renderModel": "./render/robot/09_arm_openarm_left_link6.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_left_link6.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.013790200464427471,
+              -0.0084073003381490707,
+              -0.059379998594522476
+            ],
+            "colliderType": "Sdf",
+            "density": 1438.9241943359375,
+            "hasGravity": false,
+            "momentOfInertia": [
+              0.00021911000658292323,
+              -4.1683001654746477e-06,
+              1.4042999509911169e-06,
+              0.00015627000539097935,
+              1.5123999901334173e-06,
+              0.00016589999722782522
+            ],
+            "name": "openarm_left_ee_base_link",
+            "parentLink": 9,
+            "renderModel": "./render/robot/10_openarm_left_ee_base_link.glb",
+            "shape": "./generated_assets/openarm_v20_openarm_left_ee_base_link.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.01249909121543169,
+              -0.0017659278819337487,
+              -0.024166319519281387
+            ],
+            "colliderType": "Sdf",
+            "density": 3166.661376953125,
+            "hasGravity": false,
+            "momentOfInertia": [
+              3.6110537621425465e-05,
+              -1.358802137474413e-06,
+              7.1391632445738651e-06,
+              3.621374344220385e-05,
+              3.6034377899341052e-06,
+              1.7495896827313118e-05
+            ],
+            "name": "openarm_left_ee_link1",
+            "parentLink": 10,
+            "renderModel": "./render/robot/11_openarm_left_ee_link1.glb",
+            "shape": "./generated_assets/openarm_v20_openarm_left_ee_link1.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.012795999646186829,
+              0.0020182998850941658,
+              -0.026791999116539955
+            ],
+            "colliderType": "Sdf",
+            "density": 2858.2958984375,
+            "hasGravity": false,
+            "momentOfInertia": [
+              3.4565000532893464e-05,
+              1.3392000255407766e-06,
+              7.157600066420855e-06,
+              3.5305998608237132e-05,
+              -3.717199888342293e-06,
+              1.6571000742260367e-05
+            ],
+            "name": "openarm_left_ee_link2",
+            "parentLink": 10,
+            "renderModel": "./render/robot/12_openarm_left_ee_link2.glb",
+            "shape": "./generated_assets/openarm_v20_openarm_left_ee_link2.mochi.h5"
+          },
+          {
+            "colliderType": "None",
+            "name": "site_left_camera",
+            "parentLink": 10
+          },
+          {
+            "colliderType": "None",
+            "name": "openarm_right_base_link",
+            "parentLink": 1
+          },
+          {
+            "colliderType": "Sdf",
+            "name": "arm_openarm_right_base_link",
+            "parentLink": 14,
+            "renderModel": "./render/robot/15_arm_openarm_right_base_link.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_right_base_link.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.00090035033645108342,
+              -0.044465970247983932,
+              2.8844102416769601e-05
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.55000001192092896,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 1828.483154296875,
+            "momentOfInertia": [
+              0.0010943212546408176,
+              9.4162869572755881e-06,
+              4.5342218868427153e-08,
+              0.00075919972732663155,
+              6.6675568177743116e-08,
+              0.00067065918119624257
+            ],
+            "name": "arm_openarm_right_link1",
+            "parentLink": 15,
+            "renderModel": "./render/robot/16_arm_openarm_right_link1.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_right_link1.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.024718493223190308,
+              7.605783736153171e-08,
+              -0.031264308840036392
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.55000001192092896,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 1363.9962158203125,
+            "momentOfInertia": [
+              0.00015358882956206799,
+              -2.944225974133019e-10,
+              5.2105606300756335e-06,
+              0.00011306218220852315,
+              3.758169053735827e-10,
+              8.2299935456831008e-05
+            ],
+            "name": "arm_openarm_right_link2",
+            "parentLink": 16,
+            "renderModel": "./render/robot/17_arm_openarm_right_link2.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_right_link2.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.0030086180195212364,
+              -0.00051481329137459397,
+              -0.10936824232339859
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.55000001192092896,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 2053.169189453125,
+            "momentOfInertia": [
+              0.0012893963139504194,
+              -2.2995104131950939e-07,
+              -6.7616194428410381e-05,
+              0.0011401899391785264,
+              -1.0626080438669305e-05,
+              0.00055976549629122019
+            ],
+            "name": "arm_openarm_right_link3",
+            "parentLink": 17,
+            "renderModel": "./render/robot/18_arm_openarm_right_link3.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_right_link3.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.0031032625120133162,
+              -0.0013653897913172841,
+              -0.057460136711597443
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.55000001192092896,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 1060.595703125,
+            "momentOfInertia": [
+              0.00046900360030122101,
+              5.6362691793765407e-06,
+              -1.778779960659449e-06,
+              0.00043392626685090363,
+              3.4175780001532985e-06,
+              0.0002452114422339946
+            ],
+            "name": "arm_openarm_right_link4",
+            "parentLink": 18,
+            "renderModel": "./render/robot/19_arm_openarm_right_link4.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_right_link4.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.00073718855855986476,
+              -0.00041240654536522925,
+              -0.047093827277421951
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.55000001192092896,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 1635.5601806640625,
+            "momentOfInertia": [
+              0.00027965338085778058,
+              3.317452865303494e-06,
+              7.6809732263427577e-07,
+              0.00033459963742643595,
+              -1.4993440800026292e-07,
+              0.00017666246276348829
+            ],
+            "name": "arm_openarm_right_link5",
+            "parentLink": 19,
+            "renderModel": "./render/robot/20_arm_openarm_right_link5.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_right_link5.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              2.2743843146599829e-05,
+              0.00068649603053927422,
+              5.4400050430558622e-05
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.55000001192092896,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 3353.423583984375,
+            "momentOfInertia": [
+              0.00017927594308275729,
+              6.584393474895478e-08,
+              -3.3710115587837208e-08,
+              0.00013624751591123641,
+              3.3225358464505916e-08,
+              0.0001353406987618655
+            ],
+            "name": "arm_openarm_right_link6",
+            "parentLink": 20,
+            "renderModel": "./render/robot/21_arm_openarm_right_link6.glb",
+            "shape": "./generated_assets/openarm_v20_arm_openarm_right_link6.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.013790200464427471,
+              0.0084073003381490707,
+              -0.059379998594522476
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.55000001192092896,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 1437.87353515625,
+            "momentOfInertia": [
+              0.00021911000658292323,
+              4.1683001654746477e-06,
+              1.4042999509911169e-06,
+              0.00015627000539097935,
+              -1.5123999901334173e-06,
+              0.00016589999722782522
+            ],
+            "name": "openarm_right_ee_base_link",
+            "parentLink": 21,
+            "renderModel": "./render/robot/22_openarm_right_ee_base_link.glb",
+            "shape": "./generated_assets/openarm_v20_openarm_right_ee_base_link.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.01249909121543169,
+              0.0017659278819337487,
+              -0.024166319519281387
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.94999998807907104,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 3166.524658203125,
+            "momentOfInertia": [
+              3.6110537621425465e-05,
+              1.358802137474413e-06,
+              7.1391632445738651e-06,
+              3.621374344220385e-05,
+              -3.6034377899341052e-06,
+              1.7495896827313118e-05
+            ],
+            "name": "openarm_right_ee_link1",
+            "parentLink": 22,
+            "renderModel": "./render/robot/23_openarm_right_ee_link1.glb",
+            "shape": "./generated_assets/openarm_v20_openarm_right_ee_link1.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.012795999646186829,
+              -0.0020182998850941658,
+              -0.026791999116539955
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 0.94999998807907104,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 2858.28759765625,
+            "momentOfInertia": [
+              3.4565000532893464e-05,
+              -1.3392000255407766e-06,
+              7.157600066420855e-06,
+              3.5305998608237132e-05,
+              3.717199888342293e-06,
+              1.6571000742260367e-05
+            ],
+            "name": "openarm_right_ee_link2",
+            "parentLink": 22,
+            "renderModel": "./render/robot/24_openarm_right_ee_link2.glb",
+            "shape": "./generated_assets/openarm_v20_openarm_right_ee_link2.mochi.h5"
+          },
+          {
+            "colliderType": "None",
+            "name": "site_right_camera",
+            "parentLink": 22
+          }
+        ],
+        "name": "openarm_v20",
+        "translation": [
+          -0.44999998807907104,
+          0,
+          0
+        ]
+      }
+    ],
+    "rigid": [
+      {
+        "centerOfMass": [
+          0,
+          0,
+          0
+        ],
+        "colliderType": "Sphere",
+        "contact": {
+          "coulombFrictionCoefficient": 0.77999997138977051,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "layer": "ball",
+        "mass": 0.057700000703334808,
+        "momentOfInertia": [
+          4.3169216951355338e-05,
+          0,
+          0,
+          4.3169216951355338e-05,
+          0,
+          4.3169216951355338e-05
+        ],
+        "name": "blue_ball",
+        "renderModel": "./render/blue_tennis_ball.glb",
+        "renderModelScale": [
+          0.033500000834465027,
+          0.033500000834465027,
+          0.033500000834465027
+        ],
+        "shape": "./generated_assets/blue_ball_rigid.mochi.h5",
+        "translation": [
+          0,
+          -0.23000000417232513,
+          0.42170000076293945
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.41999998688697815,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "bowl",
+        "name": "gray_bowl",
+        "renderModel": "./render/gray_bowl.glb",
+        "renderModelScale": [
+          2.4000000953674316,
+          2.4000000953674316,
+          0.34999999403953552
+        ],
+        "shape": "./generated_assets/gray_bowl_rigid.mochi.h5",
+        "translation": [
+          -0.039999999105930328,
+          0.019999999552965164,
+          0.3880000114440918
+        ]
+      },
+      {
+        "colliderType": "Plane",
+        "contact": {
+          "coulombFrictionCoefficient": 0.60000002384185791,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "ground",
+        "name": "ground",
+        "shape": "./generated_assets/ground_rigid.mochi.h5"
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_1",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          -0.32499998807907104,
+          -0.3449999988079071,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_2",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          -0.32499998807907104,
+          0.28999999165534973,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_3",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          0.56999999284744263,
+          -0.3449999988079071,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_4",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          0.56999999284744263,
+          0.28999999165534973,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/top",
+        "renderModel": "./render/wood_desk_top.glb",
+        "renderModelScale": [
+          1.0199999809265137,
+          0.75999999046325684,
+          0.05000000074505806
+        ],
+        "shape": "./generated_assets/wooden_desk_top_rigid.mochi.h5",
+        "translation": [
+          -0.36000001430511475,
+          -0.37999999523162842,
+          0.33799999952316284
+        ]
+      }
+    ]
+  },
+  "contactFilter": {
+    "actorContactSymmetric": [
+      {
+        "actors": [
+          "openarm_v20/openarm_right_ee_base_link",
+          "openarm_v20/openarm_right_ee_link1"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_right_link6",
+          "openarm_v20/openarm_right_ee_base_link"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_right_link5",
+          "openarm_v20/arm_openarm_right_link6"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_right_link3",
+          "openarm_v20/arm_openarm_right_link4"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_right_link1",
+          "openarm_v20/arm_openarm_right_link2"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_right_base_link",
+          "openarm_v20/arm_openarm_right_link1"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_base_link",
+          "openarm_v20/arm_openarm_right_link1"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_base_link",
+          "openarm_v20/arm_openarm_right_base_link"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/openarm_body_link0",
+          "openarm_v20/arm_openarm_right_base_link"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_base_link",
+          "openarm_v20/arm_openarm_left_link1"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_right_link4",
+          "openarm_v20/arm_openarm_right_link5"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/openarm_body_link0",
+          "openarm_v20/arm_openarm_left_base_link"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/openarm_right_ee_base_link",
+          "openarm_v20/openarm_right_ee_link2"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_link3",
+          "openarm_v20/arm_openarm_left_link4"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/openarm_body_link0",
+          "openarm_v20/arm_openarm_left_link1"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_link5",
+          "openarm_v20/arm_openarm_left_link6"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_link4",
+          "openarm_v20/arm_openarm_left_link5"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_right_link2",
+          "openarm_v20/arm_openarm_right_link3"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/openarm_body_link0",
+          "openarm_v20/arm_openarm_right_link1"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_link1",
+          "openarm_v20/arm_openarm_left_link2"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_link2",
+          "openarm_v20/arm_openarm_left_link3"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/openarm_left_ee_base_link",
+          "openarm_v20/openarm_left_ee_link2"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/arm_openarm_left_link6",
+          "openarm_v20/openarm_left_ee_base_link"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "openarm_v20/openarm_left_ee_base_link",
+          "openarm_v20/openarm_left_ee_link1"
+        ],
+        "enable": false
+      }
+    ]
+  },
+  "scene": {
+    "description": "Full OpenArm v2 with only the right arm intended for task control; blue regulation-size tennis ball, gray bowl, and walnut desk.",
+    "gravity": [
+      0,
+      0,
+      -9.8066501617431641
+    ],
+    "solver": {
+      "integrationMethod": "BDF2",
+      "nonLinearSolver": {
+        "maxIter": 8
+      }
+    }
+  }
+}

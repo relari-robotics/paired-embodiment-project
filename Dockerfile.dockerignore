@@ -1,0 +1,20 @@
+# Applies when building with `-f superdex-scenarios/Dockerfile` (BuildKit picks
+# up <Dockerfile>.dockerignore next to the Dockerfile). Context is the parent
+# directory holding project_superdex/ and superdex-scenarios/.
+
+# From project_superdex only the assets are needed (SuperDex itself is
+# installed from PyPI wheels); skip the 29 MB test fixtures.
+project_superdex/*
+!project_superdex/assets
+project_superdex/assets/test
+
+# Prior run outputs (~277 MB) and the Studio-only scene bundle.
+superdex-scenarios/scenarios/openarm_ball_bowl/exports
+superdex-scenarios/scenarios/ball_bowl/exports
+superdex-scenarios/scenarios/ball_bowl/studio
+superdex-scenarios/scenarios/openarm_ball_bowl/studio
+
+# Never needed in the image.
+**/__pycache__
+**/.git
+**/.venv

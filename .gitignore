@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.venv/
+node_modules/
+exports/
+.DS_Store
+.polyscope.ini
+
+# MANO body-model files require a separate license and must not be redistributed.
+thirdparty/mano_models/*.pkl

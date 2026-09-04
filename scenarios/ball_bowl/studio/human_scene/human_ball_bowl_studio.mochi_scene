@@ -1,0 +1,4003 @@
+{
+  "actors": {
+    "articulated": [
+      {
+        "joints": [
+          {
+            "name": "human_hand_anchor",
+            "type": "Hard"
+          },
+          {
+            "axis": [
+              1,
+              0,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.02500000037252903,
+              "falloffVel": 0.0099999997764825821,
+              "viscous": 0.059999998658895493
+            },
+            "limitDamping": 4,
+            "limitStiffness": 1200,
+            "maxLimit": [
+              0.64999997615814209,
+              0,
+              0
+            ],
+            "minLimit": [
+              -0.44999998807907104,
+              0,
+              0
+            ],
+            "name": "human_hand_x",
+            "type": "Prismatic"
+          },
+          {
+            "axis": [
+              0,
+              1,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.02500000037252903,
+              "falloffVel": 0.0099999997764825821,
+              "viscous": 0.059999998658895493
+            },
+            "limitDamping": 4,
+            "limitStiffness": 1200,
+            "maxLimit": [
+              0,
+              0.44999998807907104,
+              0
+            ],
+            "minLimit": [
+              0,
+              -0.44999998807907104,
+              0
+            ],
+            "name": "human_hand_y",
+            "type": "Prismatic"
+          },
+          {
+            "axis": [
+              0,
+              0,
+              1
+            ],
+            "friction": {
+              "coulomb": 0.02500000037252903,
+              "falloffVel": 0.0099999997764825821,
+              "viscous": 0.059999998658895493
+            },
+            "limitDamping": 4,
+            "limitStiffness": 1200,
+            "maxLimit": [
+              0,
+              0,
+              0.85000002384185791
+            ],
+            "minLimit": [
+              0,
+              0,
+              0.38999998569488525
+            ],
+            "name": "human_hand_z",
+            "type": "Prismatic"
+          },
+          {
+            "axis": [
+              0,
+              0,
+              1
+            ],
+            "friction": {
+              "coulomb": 0.02500000037252903,
+              "falloffVel": 0.0099999997764825821,
+              "viscous": 0.059999998658895493
+            },
+            "limitDamping": 4,
+            "limitStiffness": 1200,
+            "maxLimit": [
+              0,
+              0,
+              3.1415927410125732
+            ],
+            "minLimit": [
+              0,
+              0,
+              -3.1415927410125732
+            ],
+            "name": "human_hand_yaw",
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              0,
+              1,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.02500000037252903,
+              "falloffVel": 0.0099999997764825821,
+              "viscous": 0.059999998658895493
+            },
+            "limitDamping": 4,
+            "limitStiffness": 1200,
+            "maxLimit": [
+              0,
+              1.5707963705062866,
+              0
+            ],
+            "minLimit": [
+              0,
+              -1.5707963705062866,
+              0
+            ],
+            "name": "human_hand_pitch",
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              1,
+              0,
+              0
+            ],
+            "friction": {
+              "coulomb": 0.02500000037252903,
+              "falloffVel": 0.0099999997764825821,
+              "viscous": 0.059999998658895493
+            },
+            "limitDamping": 4,
+            "limitStiffness": 1200,
+            "maxLimit": [
+              1.5707963705062866,
+              0,
+              0
+            ],
+            "minLimit": [
+              -1.5707963705062866,
+              0,
+              0
+            ],
+            "name": "human_hand_roll",
+            "type": "Revolute"
+          },
+          {
+            "name": "human_hand_wrist_mount",
+            "type": "Hard"
+          },
+          {
+            "name": "joint_01_wrist_stub",
+            "type": "Hard"
+          },
+          {
+            "friction": {
+              "viscous": 0.0099999997764825821
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              0.52359879016876221,
+              0.52359867095947266,
+              0.087266445159912109
+            ],
+            "minLimit": [
+              -1.0471975803375244,
+              -0.52359873056411743,
+              -0.78539812564849854
+            ],
+            "name": "joint_02_thumb_metacarpal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.0077787996269762516,
+                -0.37538695335388184,
+                0.42458406090736389,
+                0.8238644003868103
+              ],
+              "translation": [
+                -0.01049652136862278,
+                0.020069301128387451,
+                -0.01155409961938858
+              ]
+            },
+            "type": "Spherical"
+          },
+          {
+            "axis": [
+              5.9604651880817983e-08,
+              0.086186416447162628,
+              -0.99627912044525146
+            ],
+            "friction": {
+              "viscous": 0.0099999997764825821
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -1.5707963705062866,
+              -0.26179936528205872,
+              -0.52359879016876221
+            ],
+            "minLimit": [
+              0.52359879016876221,
+              0.26179936528205872,
+              0.52359879016876221
+            ],
+            "name": "joint_03_thumb_proximal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.12567797303199768,
+                -0.26023030281066895,
+                0.024330887943506241,
+                0.95702314376831055
+              ],
+              "translation": [
+                0,
+                0.024852558970451355,
+                9.3132257461547852e-10
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -0.9976733922958374,
+              -0.068175077438354492,
+              0
+            ],
+            "friction": {
+              "viscous": 0.00019999999494757503
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -1.5707963705062866,
+              -0.34906584024429321,
+              -0.2617993950843811
+            ],
+            "minLimit": [
+              0.2617993950843811,
+              0.087266437709331512,
+              0.17453277111053467
+            ],
+            "name": "joint_04_thumb_medial",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.084062263369560242,
+                0.082703739404678345,
+                -0.076961725950241089,
+                0.99003565311431885
+              ],
+              "translation": [
+                0,
+                0.032512910664081573,
+                1.862645149230957e-09
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -0.99651169776916504,
+              0.08345378190279007,
+              -2.9802325229866256e-07
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -2.0943951606750488,
+              -0.087266325950622559,
+              -0.17453294992446899
+            ],
+            "minLimit": [
+              0.52359879016876221,
+              0.26179936528205872,
+              0.17453289031982422
+            ],
+            "name": "joint_05_thumb_distal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.058274123817682266,
+                -0.083505861461162567,
+                0.065015710890293121,
+                0.99267512559890747
+              ],
+              "translation": [
+                0,
+                0.033793091773986816,
+                1.862645149230957e-09
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "friction": {
+              "viscous": 0.00030000001424923539
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              0.34906581044197083,
+              0.34906584024429321,
+              0.52359879016876221
+            ],
+            "minLimit": [
+              -1.5707963705062866,
+              -0.34906581044197083,
+              -0.52359879016876221
+            ],
+            "name": "joint_06_index_proximal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.043281465768814087,
+                -0.030683070421218872,
+                -0.018855586647987366,
+                0.99841362237930298
+              ],
+              "translation": [
+                -0.023550674319267273,
+                0.095996230840682983,
+                -0.0073164496570825577
+              ]
+            },
+            "type": "Spherical"
+          },
+          {
+            "axis": [
+              -0.99999797344207764,
+              -0.0020183324813842773,
+              1.1920928955078125e-07
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -2.0943951606750488,
+              -0.17453277111053467,
+              -0.17453292012214661
+            ],
+            "minLimit": [
+              0.2617993950843811,
+              0.17453290522098541,
+              0.087266445159912109
+            ],
+            "name": "joint_07_index_medial",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.0032929177395999432,
+                0.025852411985397339,
+                -0.0071160495281219482,
+                0.99963504076004028
+              ],
+              "translation": [
+                0,
+                0.037927299737930298,
+                1.862645149230957e-09
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -0.99977660179138184,
+              -0.021136313676834106,
+              0
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -1.5707963705062866,
+              -0.2617993950843811,
+              -0.087266445159912109
+            ],
+            "minLimit": [
+              0.52359879016876221,
+              0.26179936528205872,
+              0.087266325950622559
+            ],
+            "name": "joint_08_index_distal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.072034016251564026,
+                0.016056060791015625,
+                -0.027148842811584473,
+                0.99690335988998413
+              ],
+              "translation": [
+                0,
+                0.02430364117026329,
+                9.3132257461547852e-10
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "friction": {
+              "viscous": 0.00030000001424923539
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              0.26179936528205872,
+              0.26179936528205872,
+              0.52359879016876221
+            ],
+            "minLimit": [
+              -1.5707963705062866,
+              -0.26179936528205872,
+              -0.52359879016876221
+            ],
+            "name": "joint_09_middle_proximal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.051835734397172928,
+                0.0090662697330117226,
+                -0.051465604454278946,
+                0.99728745222091675
+              ],
+              "translation": [
+                -0.001725904643535614,
+                0.095646604895591736,
+                -0.0025431588292121887
+              ]
+            },
+            "type": "Spherical"
+          },
+          {
+            "axis": [
+              -0.99999785423278809,
+              0.0020815432071685791,
+              0
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -2.0943951606750488,
+              -0.17453277111053467,
+              -0.087266474962234497
+            ],
+            "minLimit": [
+              0.2617993950843811,
+              0.17453292012214661,
+              0.087266445159912109
+            ],
+            "name": "joint_10_middle_medial",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.0019782488234341145,
+                0.011228249408304691,
+                -0.0043788407929241657,
+                0.99992543458938599
+              ],
+              "translation": [
+                0,
+                0.042926974594593048,
+                1.862645149230957e-09
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -0.99528640508651733,
+              0.096979781985282898,
+              0
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -1.5707963705062866,
+              -0.17453289031982422,
+              -0.17453289031982422
+            ],
+            "minLimit": [
+              0.52359879016876221,
+              0.17453289031982422,
+              0.17453289031982422
+            ],
+            "name": "joint_11_middle_distal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.093007013201713562,
+                0.034319549798965454,
+                -0.0046118199825286865,
+                0.99506312608718872
+              ],
+              "translation": [
+                0,
+                0.027549583464860916,
+                9.3132257461547852e-10
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "friction": {
+              "viscous": 0.00030000001424923539
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              0.34906584024429321,
+              0.43633225560188293,
+              0.52359879016876221
+            ],
+            "minLimit": [
+              -1.5707963705062866,
+              -0.43633228540420532,
+              -0.52359879016876221
+            ],
+            "name": "joint_12_ring_proximal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.049813508987426758,
+                0.053159330040216446,
+                -0.12310343235731125,
+                0.98971623182296753
+              ],
+              "translation": [
+                0.017465241253376007,
+                0.088693782687187195,
+                -0.0065293051302433014
+              ]
+            },
+            "type": "Spherical"
+          },
+          {
+            "axis": [
+              -0.99975180625915527,
+              0.022281737998127937,
+              0
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -2.0943951606750488,
+              -0.17453277111053467,
+              -0.17453292012214661
+            ],
+            "minLimit": [
+              0.2617993950843811,
+              0.17453290522098541,
+              0.17453289031982422
+            ],
+            "name": "joint_13_ring_medial",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.0056760157458484173,
+                0.03363250195980072,
+                -0.0027898699045181274,
+                0.99941426515579224
+              ],
+              "translation": [
+                0,
+                0.038996100425720215,
+                1.862645149230957e-09
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -0.99709928035736084,
+              0.076113052666187286,
+              0
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -1.5707963705062866,
+              -0.2617993950843811,
+              -0.17453294992446899
+            ],
+            "minLimit": [
+              0.52359879016876221,
+              0.26179936528205872,
+              0.17453277111053467
+            ],
+            "name": "joint_14_ring_distal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.025028541684150696,
+                0.0034774839878082275,
+                0.029179409146308899,
+                0.99925482273101807
+              ],
+              "translation": [
+                0,
+                0.026573408395051956,
+                9.3132257461547852e-10
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -1,
+              2.9802322387695312e-08,
+              0
+            ],
+            "friction": {
+              "viscous": 0.0099999997764825821
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -0.43633246421813965,
+              -1.0471975803375244,
+              -0.78539818525314331
+            ],
+            "minLimit": [
+              0.26179945468902588,
+              1.0471974611282349,
+              0.78539812564849854
+            ],
+            "name": "joint_15_pinky_metacarpal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.018311792984604836,
+                0.20703601837158203,
+                -0.14034280180931091,
+                0.96804165840148926
+              ],
+              "translation": [
+                0.022998573258519173,
+                0.034073561429977417,
+                -0.0094198323786258698
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "friction": {
+              "viscous": 0.00030000001424923539
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              0.52359879016876221,
+              0.52359873056411743,
+              0.52359879016876221
+            ],
+            "minLimit": [
+              -1.5707963705062866,
+              -0.26179936528205872,
+              -0.52359879016876221
+            ],
+            "name": "joint_16_pinky_proximal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                -0.028129234910011292,
+                -0.091113045811653137,
+                0.0040712952613830566,
+                0.99543488025665283
+              ],
+              "translation": [
+                0,
+                0.045650534331798553,
+                1.862645149230957e-09
+              ]
+            },
+            "type": "Spherical"
+          },
+          {
+            "axis": [
+              -0.99898481369018555,
+              0.04504859447479248,
+              -5.9604644775390625e-08
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -2.0943951606750488,
+              -0.17453277111053467,
+              -0.17453292012214661
+            ],
+            "minLimit": [
+              0.2617993950843811,
+              0.17453290522098541,
+              0.17453289031982422
+            ],
+            "name": "joint_17_pinky_medial",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.013286041095852852,
+                0.037616673856973648,
+                -0.04293769970536232,
+                0.99828094244003296
+              ],
+              "translation": [
+                0,
+                0.030720409005880356,
+                9.3132257461547852e-10
+              ]
+            },
+            "type": "Revolute"
+          },
+          {
+            "axis": [
+              -0.99895423650741577,
+              0.045722458511590958,
+              5.9604651880817983e-08
+            ],
+            "friction": {
+              "viscous": 9.9999997473787516e-05
+            },
+            "limitStiffness": 1000,
+            "maxLimit": [
+              -1.5707963705062866,
+              -0.2617993950843811,
+              -0.17453294992446899
+            ],
+            "minLimit": [
+              0.52359879016876221,
+              0.26179936528205872,
+              0.17453277111053467
+            ],
+            "name": "joint_18_pinky_distal",
+            "parentLinkFromJoint": {
+              "rotation": [
+                0.024018822237849236,
+                -0.00064474344253540039,
+                0.04917067289352417,
+                0.99850142002105713
+              ],
+              "translation": [
+                0,
+                0.0203113853931427,
+                9.3132257461547852e-10
+              ]
+            },
+            "type": "Revolute"
+          }
+        ],
+        "links": [
+          {
+            "colliderType": "None",
+            "contact": {
+              "coulombFrictionCoefficient": 0.62000000476837158,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "layer": "human_arm",
+            "name": "hand_carrier_anchor",
+            "shape": "./generated_assets/human_right_hand_hand_carrier_anchor.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -9.0630836169225404e-09,
+              6.6972249967989228e-09,
+              6.0047535832552512e-09
+            ],
+            "colliderType": "None",
+            "contact": {
+              "coulombFrictionCoefficient": 0.62000000476837158,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 238440.75,
+            "hasGravity": false,
+            "layer": "human_arm",
+            "momentOfInertia": [
+              4.0036271520271782e-10,
+              2.0949112666046935e-16,
+              5.3559049454862413e-15,
+              4.0024111802594575e-10,
+              1.0917581298914864e-15,
+              4.0036624016082101e-10
+            ],
+            "name": "hand_carrier_x",
+            "parentLink": 0,
+            "shape": "./generated_assets/human_right_hand_hand_carrier_x.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -9.0630836169225404e-09,
+              6.6972249967989228e-09,
+              6.0047535832552512e-09
+            ],
+            "colliderType": "None",
+            "contact": {
+              "coulombFrictionCoefficient": 0.62000000476837158,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 238440.75,
+            "hasGravity": false,
+            "layer": "human_arm",
+            "momentOfInertia": [
+              4.0036271520271782e-10,
+              2.0949112666046935e-16,
+              5.3559049454862413e-15,
+              4.0024111802594575e-10,
+              1.0917581298914864e-15,
+              4.0036624016082101e-10
+            ],
+            "name": "hand_carrier_y",
+            "parentLink": 1,
+            "shape": "./generated_assets/human_right_hand_hand_carrier_y.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -9.0630836169225404e-09,
+              6.6972249967989228e-09,
+              6.0047535832552512e-09
+            ],
+            "colliderType": "None",
+            "contact": {
+              "coulombFrictionCoefficient": 0.62000000476837158,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 238440.75,
+            "hasGravity": false,
+            "layer": "human_arm",
+            "momentOfInertia": [
+              4.0036271520271782e-10,
+              2.0949112666046935e-16,
+              5.3559049454862413e-15,
+              4.0024111802594575e-10,
+              1.0917581298914864e-15,
+              4.0036624016082101e-10
+            ],
+            "name": "hand_carrier_z",
+            "parentLink": 2,
+            "shape": "./generated_assets/human_right_hand_hand_carrier_z.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -9.0630836169225404e-09,
+              6.6972249967989228e-09,
+              6.0047535832552512e-09
+            ],
+            "colliderType": "None",
+            "contact": {
+              "coulombFrictionCoefficient": 0.62000000476837158,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 238440.75,
+            "hasGravity": false,
+            "layer": "human_arm",
+            "momentOfInertia": [
+              4.0036271520271782e-10,
+              2.0949112666046935e-16,
+              5.3559049454862413e-15,
+              4.0024111802594575e-10,
+              1.0917581298914864e-15,
+              4.0036624016082101e-10
+            ],
+            "name": "hand_carrier_yaw",
+            "parentLink": 3,
+            "shape": "./generated_assets/human_right_hand_hand_carrier_yaw.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -9.0630836169225404e-09,
+              6.6972249967989228e-09,
+              6.0047535832552512e-09
+            ],
+            "colliderType": "None",
+            "contact": {
+              "coulombFrictionCoefficient": 0.62000000476837158,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 238440.75,
+            "hasGravity": false,
+            "layer": "human_arm",
+            "momentOfInertia": [
+              4.0036271520271782e-10,
+              2.0949112666046935e-16,
+              5.3559049454862413e-15,
+              4.0024111802594575e-10,
+              1.0917581298914864e-15,
+              4.0036624016082101e-10
+            ],
+            "name": "hand_carrier_pitch",
+            "parentLink": 4,
+            "shape": "./generated_assets/human_right_hand_hand_carrier_pitch.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -9.0630836169225404e-09,
+              6.6972249967989228e-09,
+              6.0047535832552512e-09
+            ],
+            "colliderType": "None",
+            "contact": {
+              "coulombFrictionCoefficient": 0.62000000476837158,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 238440.75,
+            "hasGravity": false,
+            "layer": "human_arm",
+            "momentOfInertia": [
+              4.0036271520271782e-10,
+              2.0949112666046935e-16,
+              5.3559049454862413e-15,
+              4.0024111802594575e-10,
+              1.0917581298914864e-15,
+              4.0036624016082101e-10
+            ],
+            "name": "hand_carrier_roll",
+            "parentLink": 5,
+            "shape": "./generated_assets/human_right_hand_hand_carrier_roll.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.0026329818647354841,
+              0.049172084778547287,
+              -0.0096453409641981125
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              0.00012446360778994858,
+              1.1477348380140029e-05,
+              -4.7047697080415674e-06,
+              7.3065442848019302e-05,
+              3.1474939987674588e-07,
+              0.00015763123519718647
+            ],
+            "name": "bone_00_wrist_root",
+            "parentLink": 6,
+            "renderModel": "./render/robot/07_bone_00_wrist_root.glb",
+            "shape": "./generated_assets/human_right_hand_bone_00_wrist_root.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.0016094940947368741,
+              0.0059554134495556355,
+              -0.0013758428394794464
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              1.438365870853886e-05,
+              -5.4627335543955269e-08,
+              1.7610035740744934e-07,
+              1.359373618470272e-05,
+              -5.1939673539891373e-07,
+              1.9106999388895929e-05
+            ],
+            "name": "bone_01_wrist_stub",
+            "parentLink": 7,
+            "renderModel": "./render/robot/08_bone_01_wrist_stub.glb",
+            "shape": "./generated_assets/human_right_hand_bone_01_wrist_stub.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.0061277011409401894,
+              0.017110154032707214,
+              -0.0038433859590440989
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              5.9160747696296312e-06,
+              1.3382172880938015e-07,
+              -1.6931977597778314e-07,
+              4.9702503019943833e-06,
+              4.6406228193518473e-07,
+              5.7330589697812684e-06
+            ],
+            "name": "bone_02_thumb_metacarpal",
+            "parentLink": 7,
+            "renderModel": "./render/robot/09_bone_02_thumb_metacarpal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_02_thumb_metacarpal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.0018419608240947127,
+              0.013039620593190193,
+              -0.0061167515814304352
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              7.5487205322133377e-06,
+              -2.0514589493814128e-07,
+              9.499709108240495e-08,
+              5.1224342314526439e-06,
+              -4.4934364495929913e-07,
+              7.8456268965965137e-06
+            ],
+            "name": "bone_03_thumb_proximal",
+            "parentLink": 9,
+            "renderModel": "./render/robot/10_bone_03_thumb_proximal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_03_thumb_proximal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.0018699954962357879,
+              0.012795163318514824,
+              -0.0015608087414875627
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              2.0057736946910154e-06,
+              1.6832292715207586e-07,
+              7.9615469772420511e-09,
+              5.6726571528997738e-07,
+              -4.1369990100292853e-08,
+              2.0651250451919623e-06
+            ],
+            "name": "bone_04_thumb_medial",
+            "parentLink": 10,
+            "renderModel": "./render/robot/11_bone_04_thumb_medial.glb",
+            "shape": "./generated_assets/human_right_hand_bone_04_thumb_medial.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.0006791595951654017,
+              0.0074267308227717876,
+              -0.0010854494757950306
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              2.3112465896701906e-07,
+              -5.7669358177747654e-09,
+              -6.8350425319607666e-10,
+              1.3880020333090215e-07,
+              -8.5627087642592414e-09,
+              2.5883213083943701e-07
+            ],
+            "name": "bone_05_thumb_distal",
+            "parentLink": 11,
+            "renderModel": "./render/robot/12_bone_05_thumb_distal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_05_thumb_distal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.00083060777978971601,
+              0.013608943670988083,
+              -0.0024707943666726351
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              2.3505501758336322e-06,
+              9.2965059650396142e-08,
+              1.3833565404297588e-08,
+              5.8162459026789293e-07,
+              -1.4417668126043282e-07,
+              2.3303616671910277e-06
+            ],
+            "name": "bone_06_index_proximal",
+            "parentLink": 7,
+            "renderModel": "./render/robot/13_bone_06_index_proximal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_06_index_proximal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.0003147803945466876,
+              0.01080054696649313,
+              -0.00076748960418626666
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              3.837859026134538e-07,
+              -3.1979936476744797e-09,
+              -1.0059401228668108e-11,
+              1.1129574772894557e-07,
+              -1.359290813240932e-08,
+              3.8815457514829177e-07
+            ],
+            "name": "bone_07_index_medial",
+            "parentLink": 13,
+            "renderModel": "./render/robot/14_bone_07_index_medial.glb",
+            "shape": "./generated_assets/human_right_hand_bone_07_index_medial.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.00057473924243822694,
+              0.0061154835857450962,
+              0.00016737788973841816
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              1.0280973583576269e-07,
+              -7.1799693968088718e-10,
+              1.9465180856048647e-10,
+              4.1174764930929086e-08,
+              -4.8654369422251875e-10,
+              1.0663546845535166e-07
+            ],
+            "name": "bone_08_index_distal",
+            "parentLink": 14,
+            "renderModel": "./render/robot/15_bone_08_index_distal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_08_index_distal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              1.436515503883129e-05,
+              0.015843383967876434,
+              -0.0036942258011549711
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              3.0898593195161084e-06,
+              -3.1961025825921752e-08,
+              -1.0798241412146581e-08,
+              7.1160138759296387e-07,
+              -2.523545958865725e-07,
+              3.0585063086618902e-06
+            ],
+            "name": "bone_09_middle_proximal",
+            "parentLink": 7,
+            "renderModel": "./render/robot/16_bone_09_middle_proximal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_09_middle_proximal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              1.9180245089955861e-06,
+              0.012795899994671345,
+              -0.00074994162423536181
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              5.1952605417682207e-07,
+              1.6140294656352694e-10,
+              2.7863256146787307e-10,
+              1.3791364494863956e-07,
+              -1.3661388464925039e-08,
+              5.2121720273134997e-07
+            ],
+            "name": "bone_10_middle_medial",
+            "parentLink": 16,
+            "renderModel": "./render/robot/17_bone_10_middle_medial.glb",
+            "shape": "./generated_assets/human_right_hand_bone_10_middle_medial.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              6.449339707614854e-05,
+              0.0070591792464256287,
+              0.00018172628188040107
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              1.496797494837665e-07,
+              -2.5500790368226944e-09,
+              7.0785183270416496e-10,
+              5.5023178902047221e-08,
+              -2.5747164400513611e-09,
+              1.5515124118792301e-07
+            ],
+            "name": "bone_11_middle_distal",
+            "parentLink": 17,
+            "renderModel": "./render/robot/18_bone_11_middle_distal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_11_middle_distal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -4.3081778130726889e-05,
+              0.013547798618674278,
+              -0.0028750011697411537
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              2.1818154891661834e-06,
+              -8.4244913267639276e-09,
+              -1.2323798231905769e-11,
+              4.9424852477386594e-07,
+              -1.2301813967496855e-07,
+              2.1766004465462174e-06
+            ],
+            "name": "bone_12_ring_proximal",
+            "parentLink": 7,
+            "renderModel": "./render/robot/19_bone_12_ring_proximal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_12_ring_proximal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              0.00023418477212544531,
+              0.012345033697783947,
+              -0.00089621281949803233
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              3.7601429880851356e-07,
+              2.363846451913787e-09,
+              6.0758265085780749e-10,
+              9.5765642527112504e-08,
+              -5.4267723648138144e-09,
+              3.7735654245807382e-07
+            ],
+            "name": "bone_13_ring_medial",
+            "parentLink": 19,
+            "renderModel": "./render/robot/20_bone_13_ring_medial.glb",
+            "shape": "./generated_assets/human_right_hand_bone_13_ring_medial.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              4.3824289605254307e-05,
+              0.0072419047355651855,
+              -0.00019010707910638303
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              1.1076411254862251e-07,
+              5.2124676797049574e-10,
+              -3.0340988055321816e-10,
+              3.934345471634515e-08,
+              -6.2583276339012173e-09,
+              1.1260301846505172e-07
+            ],
+            "name": "bone_14_ring_distal",
+            "parentLink": 20,
+            "renderModel": "./render/robot/21_bone_14_ring_distal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_14_ring_distal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.0018435025122016668,
+              0.019402554258704185,
+              -0.0031717107631266117
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              9.0491830633254722e-06,
+              3.8858399875607574e-07,
+              1.5277267095825664e-07,
+              3.5947705327998847e-06,
+              3.8446170691486259e-08,
+              8.952547432272695e-06
+            ],
+            "name": "bone_15_pinky_metacarpal",
+            "parentLink": 7,
+            "renderModel": "./render/robot/22_bone_15_pinky_metacarpal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_15_pinky_metacarpal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.00078780698822811246,
+              0.0098935337737202644,
+              -0.0017114296788349748
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              9.7018607903009979e-07,
+              -2.6393760066412142e-08,
+              -3.3803166932244721e-09,
+              2.687394271561061e-07,
+              -6.9911301636693679e-08,
+              9.7184079095313791e-07
+            ],
+            "name": "bone_16_pinky_proximal",
+            "parentLink": 22,
+            "renderModel": "./render/robot/23_bone_16_pinky_proximal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_16_pinky_proximal.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.00024628519895486534,
+              0.0092465486377477646,
+              -0.00029067604918964207
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              1.3772577744930459e-07,
+              2.0292665325882808e-09,
+              9.4516183768433848e-10,
+              4.272568787655473e-08,
+              -1.8644532584488616e-09,
+              1.3940147880475706e-07
+            ],
+            "name": "bone_17_pinky_medial",
+            "parentLink": 23,
+            "renderModel": "./render/robot/24_bone_17_pinky_medial.glb",
+            "shape": "./generated_assets/human_right_hand_bone_17_pinky_medial.mochi.h5"
+          },
+          {
+            "centerOfMass": [
+              -0.00027963184402324259,
+              0.0067555964924395084,
+              0.00018499992438592017
+            ],
+            "colliderType": "Sdf",
+            "contact": {
+              "coulombFrictionCoefficient": 1.1499999761581421,
+              "frictionFalloffVel": 0.0010000000474974513,
+              "normalViscousDampingCoefficient": 0.49880999326705933,
+              "penaltySmoothingHalfDistance": 0.00050000002374872565,
+              "penaltyThresholdDefault": 0.00019999999494757503
+            },
+            "density": 980,
+            "layer": "human_hand",
+            "momentOfInertia": [
+              6.1929362971113733e-08,
+              -2.1137279426763911e-10,
+              3.4388578096233857e-10,
+              2.2782824515843458e-08,
+              -1.0182378273881909e-09,
+              6.2990189064748847e-08
+            ],
+            "name": "bone_18_pinky_distal",
+            "parentLink": 24,
+            "renderModel": "./render/robot/25_bone_18_pinky_distal.glb",
+            "shape": "./generated_assets/human_right_hand_bone_18_pinky_distal.mochi.h5"
+          }
+        ],
+        "name": "human_right_hand"
+      }
+    ],
+    "rigid": [
+      {
+        "centerOfMass": [
+          0,
+          0,
+          0
+        ],
+        "colliderType": "Sphere",
+        "contact": {
+          "coulombFrictionCoefficient": 0.77999997138977051,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "layer": "ball",
+        "mass": 0.057700000703334808,
+        "momentOfInertia": [
+          4.3169216951355338e-05,
+          0,
+          0,
+          4.3169216951355338e-05,
+          0,
+          4.3169216951355338e-05
+        ],
+        "name": "blue_ball",
+        "renderModel": "./render/blue_tennis_ball.glb",
+        "renderModelScale": [
+          0.033500000834465027,
+          0.033500000834465027,
+          0.033500000834465027
+        ],
+        "shape": "./generated_assets/blue_ball_rigid.mochi.h5",
+        "translation": [
+          0,
+          -0.23000000417232513,
+          0.42170000076293945
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.41999998688697815,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "bowl",
+        "name": "gray_bowl",
+        "renderModel": "./render/gray_bowl.glb",
+        "renderModelScale": [
+          2.4000000953674316,
+          2.4000000953674316,
+          0.34999999403953552
+        ],
+        "shape": "./generated_assets/gray_bowl_rigid.mochi.h5",
+        "translation": [
+          -0.039999999105930328,
+          0.019999999552965164,
+          0.3880000114440918
+        ]
+      },
+      {
+        "colliderType": "Plane",
+        "contact": {
+          "coulombFrictionCoefficient": 0.60000002384185791,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "ground",
+        "name": "ground",
+        "shape": "./generated_assets/ground_rigid.mochi.h5"
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_1",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          -0.32499998807907104,
+          -0.3449999988079071,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_2",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          -0.32499998807907104,
+          0.28999999165534973,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_3",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          0.56999999284744263,
+          -0.3449999988079071,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/leg_4",
+        "renderModel": "./render/wood_desk_leg.glb",
+        "renderModelScale": [
+          0.054999999701976776,
+          0.054999999701976776,
+          0.33799999952316284
+        ],
+        "shape": "./generated_assets/wooden_desk_leg_4_rigid.mochi.h5",
+        "translation": [
+          0.56999999284744263,
+          0.28999999165534973,
+          0
+        ]
+      },
+      {
+        "colliderType": "Sdf",
+        "contact": {
+          "coulombFrictionCoefficient": 0.44999998807907104,
+          "frictionFalloffVel": 0.0010000000474974513,
+          "normalViscousDampingCoefficient": 0.49880999326705933,
+          "penaltySmoothingHalfDistance": 0.00050000002374872565,
+          "penaltyThresholdDefault": 0.00019999999494757503
+        },
+        "isStatic": true,
+        "layer": "desk",
+        "name": "wooden_desk/top",
+        "renderModel": "./render/wood_desk_top.glb",
+        "renderModelScale": [
+          1.0199999809265137,
+          0.75999999046325684,
+          0.05000000074505806
+        ],
+        "shape": "./generated_assets/wooden_desk_top_rigid.mochi.h5",
+        "translation": [
+          -0.36000001430511475,
+          -0.37999999523162842,
+          0.33799999952316284
+        ]
+      }
+    ]
+  },
+  "contactFilter": {
+    "actorContactSymmetric": [
+      {
+        "actors": [
+          "human_right_hand/bone_16_pinky_proximal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_15_pinky_metacarpal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_15_pinky_metacarpal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_15_pinky_metacarpal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_00_wrist_root"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_11_middle_distal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/hand_carrier_yaw"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/hand_carrier_pitch"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_11_middle_distal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_12_ring_proximal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_13_ring_medial",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_14_ring_distal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_00_wrist_root"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/hand_carrier_roll"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_12_ring_proximal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/hand_carrier_z"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_13_ring_medial",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/hand_carrier_pitch"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/hand_carrier_roll"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_00_wrist_root"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/hand_carrier_x"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/hand_carrier_z"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_11_middle_distal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_12_ring_proximal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_13_ring_medial",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_14_ring_distal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/hand_carrier_pitch"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/hand_carrier_yaw"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_11_middle_distal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_12_ring_proximal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_16_pinky_proximal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_17_pinky_medial",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/hand_carrier_y"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/hand_carrier_yaw"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_12_ring_proximal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/hand_carrier_y"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_11_middle_distal",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_00_wrist_root"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/hand_carrier_roll"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/hand_carrier_z"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_00_wrist_root"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_00_wrist_root"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/hand_carrier_roll"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_11_middle_distal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_13_ring_medial",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_14_ring_distal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_14_ring_distal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/hand_carrier_yaw"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/hand_carrier_roll"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/hand_carrier_pitch"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/hand_carrier_pitch"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_y",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/hand_carrier_roll"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_anchor",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_00_wrist_root",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_01_wrist_stub",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_02_thumb_metacarpal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_03_thumb_proximal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_07_index_medial",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_08_index_distal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_04_thumb_medial",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_09_middle_proximal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_10_middle_medial",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_11_middle_distal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_12_ring_proximal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_13_ring_medial",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_yaw",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_00_wrist_root"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_z",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_x",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_01_wrist_stub"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_02_thumb_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_04_thumb_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_06_index_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_09_middle_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_05_thumb_distal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_pitch",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_03_thumb_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_05_thumb_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_07_index_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_12_ring_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_08_index_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_10_middle_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_15_pinky_metacarpal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_11_middle_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_13_ring_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/bone_06_index_proximal",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_14_ring_distal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_16_pinky_proximal"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_17_pinky_medial"
+        ],
+        "enable": false
+      },
+      {
+        "actors": [
+          "human_right_hand/hand_carrier_roll",
+          "human_right_hand/bone_18_pinky_distal"
+        ],
+        "enable": false
+      }
+    ]
+  },
+  "scene": {
+    "description": "Human right arm physical ball-and-bowl task; blue regulation-size tennis ball, gray bowl, and walnut desk.",
+    "gravity": [
+      0,
+      0,
+      -9.8066501617431641
+    ],
+    "solver": {
+      "integrationMethod": "BDF2",
+      "nonLinearSolver": {
+        "maxIter": 8
+      }
+    }
+  }
+}

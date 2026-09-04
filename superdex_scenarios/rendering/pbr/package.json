@@ -1,0 +1,9 @@
+{
+  "name": "openarm-ball-bowl-pbr-viewer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "PBR replay viewer for the external OpenArm ball-and-bowl scenario",
+  "dependencies": {
+    "three": "0.180.0"
+  }
+}

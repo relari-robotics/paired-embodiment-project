@@ -1,0 +1,69 @@
+{
+  "format": "superdex-wrist-camera-config-v1",
+  "optical_frame": "OpenCV: +X right, +Y down, +Z forward",
+  "calibration_status": "OpenArm model mount extrinsics with modeled lens intrinsics; not a measured photogrammetric calibration",
+  "hardware": {
+    "model": "Arducam B0495",
+    "capture_mode": "YUYV",
+    "width_px": 960,
+    "height_px": 600,
+    "fps": 30
+  },
+  "lens_model": {
+    "source": "OpenArm upstream MJCF wrist cameras",
+    "vertical_fov_deg": 66.0,
+    "intrinsics": {
+      "width_px": 960,
+      "height_px": 600,
+      "fx_px": 461.95948914437486,
+      "fy_px": 461.95948914437486,
+      "cx_px": 480.0,
+      "cy_px": 300.0
+    },
+    "assumptions": "Square pixels and a centered principal point, derived from the authored 66 degree vertical field of view"
+  },
+  "cameras": {
+    "wrist_right": {
+      "side": "right",
+      "actor": "openarm_v20/site_right_camera",
+      "parent_actor": "openarm_v20/openarm_right_ee_base_link",
+      "parent_from_camera_cv": {
+        "translation_m": [
+          0.01733623817563057,
+          -0.017152545973658562,
+          -0.10508789867162704
+        ],
+        "quaternion_xyzw": [
+          0.7053843140602112,
+          -0.676209568977356,
+          -0.20673801004886627,
+          -0.04932527616620064
+        ]
+      }
+    },
+    "wrist_left": {
+      "side": "left",
+      "actor": "openarm_v20/site_left_camera",
+      "parent_actor": "openarm_v20/openarm_left_ee_base_link",
+      "parent_from_camera_cv": {
+        "translation_m": [
+          0.01733623817563057,
+          0.01715264469385147,
+          -0.10508793592453003
+        ],
+        "quaternion_xyzw": [
+          0.676209568977356,
+          -0.7053843140602112,
+          0.04932527616620064,
+          0.20673801004886627
+        ]
+      }
+    }
+  },
+  "provenance": {
+    "hardware_and_capture": "~/code/robot-stack/README.md and bringup/launch/openarm_full.launch.py",
+    "mount_extrinsics": "$SUPERDEX_ROOT/assets/bots/grippers/openarm_v20/{left,right}/openarm_v20_{left,right}_gripper.superdex_bot",
+    "lens_fov": "~/code/jedi-vla/robosim/tools/openarm_bimanual_upstream.xml",
+    "axis_conversion": "The SuperDex camera-site quaternion is the upstream MJCF camera rotation followed by 180 degrees about local X, converting MJCF right/up/back to OpenCV right/down/forward"
+  }
+}
