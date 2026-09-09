@@ -54,6 +54,48 @@ hides the planned grasp-point curve, and `--frames DIR` saves a PNG every
 streams the scene to the SuperDex Physics Debugger instead. Both need a
 display and are not available in the headless container.
 
+To get a video without watching, render offscreen with the same viewer:
+
+```bash
+uv run --no-project python scenarios/sponge_plate/runner.py --fixed --camera plate --no-trajectory \
+  --video scenarios/sponge_plate/exports/sponge_plate_fixed.mp4
+```
+
+`--video PATH` opens no window, renders every frame at `--video-size`
+(default 1920x1080), and pipes them to `ffmpeg` (system or `imageio-ffmpeg`)
+as H.264 at the nearest achievable rate to `--video-fps`. A 23 s episode takes
+about 90 s on an Apple Silicon laptop.
+
+### Photorealistic video with Blender
+
+For a path-traced render with the robot's PBR render models, the textured YCB
+plate scan, procedural wood, and image-based lighting, record the episode and
+hand it to Blender:
+
+```bash
+uv run --no-project python scenarios/sponge_plate/runner.py --fixed \
+  --record-blender scenarios/sponge_plate/exports/blender_fixed
+uv run --no-project python superdex_scenarios/rendering/blender/make_video.py \
+  --recording scenarios/sponge_plate/exports/blender_fixed \
+  --output scenarios/sponge_plate/exports/sponge_plate_fixed_blender.mp4 \
+  --fps 24 --width 1280 --height 720 --samples 64 --camera plate --lens 35
+```
+
+`--record-blender DIR` runs headless and writes `scene.json` (which GLB drives
+each link, the plate scan override, materials, camera presets) and
+`frames.npz` (every actor's root transform and the sponge's deformed surface
+nodes at 66.7 Hz). `make_video.py` runs Blender in the background with
+`render_episode.py`, then encodes the PNG frames with ffmpeg; every option it
+does not recognise is passed to the render script (`--engine EEVEE` for a
+fast preview, `--samples`, `--environment studio.exr`, `--start/--end` to render
+a time range, `--frame-index N` for one still, `--save-blend file.blend` to open
+the built scene interactively). Blender 4.2 or newer is found through
+`--blender`, the `BLENDER` variable, `PATH`, or the macOS application bundle.
+With Cycles on an Apple M3 Pro GPU a 720p frame takes about 5 s, so the 23 s
+fixed episode renders in roughly 45 minutes; EEVEE is several times faster.
+The textured plate scan (`assets/ycb_029_plate/textured.obj` and its texture)
+is used only by this renderer.
+
 ## Workcell
 
 | Object | Model |

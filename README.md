@@ -64,7 +64,8 @@ onto a scanned ceramic plate, dragged through three serpentine strokes until a
 cleanliness map of the dish floor is wiped, and put back on the desk. The
 sponge is held by pinch friction alone and visibly squashes and shears. See its
 [README](scenarios/sponge_plate/README.md) for the physics, randomization,
-exports, and the viewer options for watching the deformation:
+exports, the viewer and MP4 options for watching the deformation, and the
+Blender pipeline for photorealistic renders:
 
 ```bash
 docker compose run --rm --entrypoint python superdex scenarios/sponge_plate/runner.py --fixed --dry-run

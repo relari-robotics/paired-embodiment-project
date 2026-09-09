@@ -5,6 +5,9 @@ from the [YCB Object and Model Set](https://www.ycbbenchmarks.com/), downloaded
 unmodified from
 `https://ycb-benchmarks.s3.amazonaws.com/data/google/029_plate_google_16k.tgz`.
 It is a watertight shell scan, about 26 cm across and 2.7 cm tall, in metres.
+`textured.obj`, `textured.mtl`, and `texture_map.png` are the textured variant
+from the same archive; they are used only by the Blender renderer
+(`superdex_scenarios/rendering/blender`), never by physics.
 
 The scenario does not simulate this shell directly: a thin scanned wall lets a
 pressed soft body tunnel through it. `scenario.py` converts it at load time

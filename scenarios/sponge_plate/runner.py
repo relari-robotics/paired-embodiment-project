@@ -349,6 +349,8 @@ def create_viewer(
     show_trajectory: bool = True,
     look_from: tuple[float, float, float] = DEFAULT_LOOK_FROM,
     look_at: tuple[float, float, float] = DEFAULT_LOOK_AT,
+    size: tuple[int, int] | None = None,
+    offscreen: bool = False,
 ):
     from superdex.physics.utils.coordinate_systems import CoordinateSystem
     from superdex.physics.viewer import Viewer, ViewerCfg
@@ -357,6 +359,8 @@ def create_viewer(
         ViewerCfg(
             coordinate_system=CoordinateSystem(right="-Y", up="+Z", forward="+X"),
             start_paused=False,
+            size=size,
+            offscreen=offscreen,
         )
     )
     viewer.set_scene(scenario.scene)
@@ -407,6 +411,90 @@ class FrameSaver:
             include_UI=False,
         )
         self.saved += 1
+
+
+class VideoWriter:
+    """Encode offscreen viewer frames to an MP4 through ffmpeg as the episode plays.
+
+    Wraps the viewer so :class:`PoseExecutor` keeps calling ``render()`` and
+    ``user_requested_close()`` unchanged; every ``stride``-th rendered frame is
+    piped to ffmpeg as raw RGBA.
+    """
+
+    def __init__(self, viewer, path: Path, *, fps: float, stride: int, size: tuple[int, int]) -> None:
+        import subprocess
+
+        self.viewer = viewer
+        self.path = path
+        self.stride = max(1, stride)
+        self.count = 0
+        self.written = 0
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._process = subprocess.Popen(
+            [
+                _ffmpeg_executable(),
+                "-y",
+                "-loglevel",
+                "error",
+                "-f",
+                "rawvideo",
+                "-pix_fmt",
+                "rgba",
+                "-s",
+                f"{size[0]}x{size[1]}",
+                "-r",
+                f"{fps:.4f}",
+                "-i",
+                "-",
+                "-an",
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-crf",
+                "18",
+                "-movflags",
+                "+faststart",
+                str(path),
+            ],
+            stdin=subprocess.PIPE,
+        )
+
+    def render(self):
+        frame = self.viewer.render()
+        self.count += 1
+        if frame is not None and (self.count - 1) % self.stride == 0:
+            assert self._process.stdin is not None
+            self._process.stdin.write(np.ascontiguousarray(frame, dtype=np.uint8).tobytes())
+            self.written += 1
+        return frame
+
+    def user_requested_close(self) -> bool:
+        return False
+
+    def close(self) -> None:
+        if self._process.stdin is not None:
+            self._process.stdin.close()
+        self._process.wait()
+        self.viewer.close()
+        print(f"Video written: {self.path} ({self.written} frames)")
+
+    def __getattr__(self, name: str):
+        return getattr(self.viewer, name)
+
+
+def _ffmpeg_executable() -> str:
+    import shutil
+
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception as error:  # pragma: no cover - depends on the environment
+        raise RuntimeError("ffmpeg is required for --video; install it or imageio-ffmpeg.") from error
 
 
 def default_headless_export_dir(seed: int | None) -> Path:
@@ -473,6 +561,23 @@ def parse_args() -> argparse.Namespace:
         "--frame-every", type=int, default=10, help="viewer frames between saved screenshots"
     )
     parser.add_argument(
+        "--video",
+        metavar="PATH",
+        help=(
+            "render the episode offscreen with the SuperDex viewer and encode an MP4 "
+            "(no window; combine with --camera/--no-trajectory)"
+        ),
+    )
+    parser.add_argument(
+        "--video-fps", type=float, default=30.0, help="target MP4 frame rate (default: 30)"
+    )
+    parser.add_argument(
+        "--video-size",
+        default="1920x1080",
+        metavar="WxH",
+        help="offscreen render size for --video (default: 1920x1080)",
+    )
+    parser.add_argument(
         "--camera",
         choices=sorted(CAMERA_PRESETS),
         default="workcell",
@@ -499,6 +604,15 @@ def parse_args() -> argparse.Namespace:
         help="run one headless episode and record rigid actor transforms",
     )
     parser.add_argument(
+        "--record-blender",
+        metavar="DIR",
+        help=(
+            "run one headless episode and record link transforms, the plate, and the "
+            "deforming sponge surface for offline photorealistic rendering with "
+            "superdex_scenarios/rendering/blender/make_video.py"
+        ),
+    )
+    parser.add_argument(
         "--export-dir",
         nargs="?",
         const=str(Path(__file__).resolve().parent / "exports" / "latest"),
@@ -523,7 +637,11 @@ def validate_args(args: argparse.Namespace) -> bool:
     if args.headless and (args.debugger or args.loop):
         raise SystemExit("--headless cannot be combined with --debugger or --loop")
     exclusive = (
-        args.debugger or args.loop or args.record_pbr is not None or args.export_dir is not None
+        args.debugger
+        or args.loop
+        or args.record_pbr is not None
+        or args.export_dir is not None
+        or args.record_blender is not None
     )
     if args.dry_run and (exclusive or args.skip_video):
         raise SystemExit("--dry-run cannot be combined with simulation or export options")
@@ -535,10 +653,19 @@ def validate_args(args: argparse.Namespace) -> bool:
         raise SystemExit("--snapshot cannot be combined with simulation or export options")
     if args.export_dir is not None and (args.debugger or args.loop or args.record_pbr is not None):
         raise SystemExit("--export-dir cannot be combined with --debugger, --loop, or --record-pbr")
+    if args.record_blender is not None and (
+        args.debugger or args.loop or args.record_pbr is not None or args.video is not None
+    ):
+        raise SystemExit("--record-blender cannot be combined with --debugger, --loop, --record-pbr, or --video")
     if args.frames is not None and (
         args.headless or args.dry_run or args.plan_only or args.debugger or exclusive
     ):
         raise SystemExit("--frames requires the interactive viewer (no headless/export options)")
+    if args.video is not None and (
+        args.headless or args.dry_run or args.plan_only or args.debugger or args.loop
+        or args.frames is not None
+    ):
+        raise SystemExit("--video cannot be combined with headless, debugger, or --frames options")
     return (
         args.headless
         and not args.dry_run
@@ -546,6 +673,7 @@ def validate_args(args: argparse.Namespace) -> bool:
         and not args.debugger
         and args.record_pbr is None
         and args.export_dir is None
+        and args.record_blender is None
     )
 
 
@@ -656,16 +784,33 @@ def main() -> None:
             and not args.debugger
             and args.record_pbr is None
             and export_dir is None
+            and args.record_blender is None
         )
-        if interactive:
+        if interactive or args.video is not None:
             look_from, look_at = CAMERA_PRESETS[args.camera]
+            video_size = None
+            if args.video is not None:
+                width, height = (int(v) for v in args.video_size.lower().split("x"))
+                video_size = (width, height)
             viewer = create_viewer(
                 scenario,
                 points,
                 show_trajectory=not args.no_trajectory,
                 look_from=look_from,
                 look_at=look_at,
+                size=video_size,
+                offscreen=args.video is not None,
             )
+            if args.video is not None:
+                render_fps = 1.0 / (task.TIME_STEP * task.RENDER_EVERY_STEPS)
+                stride = max(1, round(render_fps / args.video_fps))
+                viewer = VideoWriter(
+                    viewer,
+                    Path(args.video).expanduser().resolve(),
+                    fps=render_fps / stride,
+                    stride=stride,
+                    size=video_size,
+                )
 
         frame_callbacks = []
         if args.record_pbr is not None or export_dir is not None:
@@ -689,6 +834,49 @@ def main() -> None:
             frame_callbacks.append(recorder.capture)
         if args.frames is not None:
             frame_callbacks.append(FrameSaver(Path(args.frames).expanduser(), args.frame_every))
+        blender_recorder = None
+        if args.record_blender is not None:
+            from superdex_scenarios.rendering.blender.recorder import BlenderSceneRecorder
+
+            plate_assets = task.SCENARIO_ROOT / "assets" / "ycb_029_plate"
+            model = scenario.workcell.plate_model
+            blender_recorder = BlenderSceneRecorder(
+                scenario.scene,
+                time_step=task.TIME_STEP,
+                render_every_steps=task.RENDER_EVERY_STEPS,
+                cameras={
+                    name: {"look_from": list(look_from), "look_at": list(look_at)}
+                    for name, (look_from, look_at) in CAMERA_PRESETS.items()
+                },
+                materials={
+                    **{actor.get_name(): "wood" for actor in scenario.workcell.desk_actors},
+                    "ceramic_plate": "ceramic",
+                    "soft_sponge": "sponge",
+                    "ground": "floor",
+                },
+                colors={
+                    "soft_sponge": list(scenario.specification.sponge_color.rgb),
+                    "ceramic_plate": task.PLATE_COLOR.tolist(),
+                },
+                overrides={
+                    # Draw the textured scan instead of the solidified physics mesh,
+                    # shifted the same way the physics mesh was (lowest point on the
+                    # desk, dish centred on plate_xy).
+                    "ceramic_plate": {
+                        "obj": str(plate_assets / "textured.obj"),
+                        "texture": str(plate_assets / "texture_map.png"),
+                        "offset": [
+                            -float(model.center_xy[0]),
+                            -float(model.center_xy[1]),
+                            -float(model.scan_min_z),
+                        ],
+                    }
+                },
+                hidden=set(scenario.bot_info.hidden_render_link_names) | {"ground"},
+                metadata=scenario_payload,
+            )
+            blender_recorder.capture()
+            frame_callbacks.append(blender_recorder.capture)
         if export_dir is not None:
             export_dir.mkdir(parents=True, exist_ok=True)
             (export_dir / "scenario.json").write_text(
@@ -707,7 +895,7 @@ def main() -> None:
             controller,
             controller_target,
             viewer,
-            real_time=args.debugger or viewer is not None,
+            real_time=args.debugger or (viewer is not None and args.video is None),
             allow_failed_grasp=args.allow_failed_grasp,
             frame_callback=frame_callback if frame_callbacks else None,
             step_callback=telemetry.record_sample if telemetry is not None else None,
@@ -756,6 +944,9 @@ def main() -> None:
                     else Path(args.record_pbr).expanduser().resolve()
                 )
                 recorder.save(recording_path)
+            if blender_recorder is not None:
+                blender_recorder.capture()
+                blender_recorder.save(Path(args.record_blender).expanduser().resolve())
             if export_dir is not None:
                 runner.phases.save(export_dir / "phases.json")
                 (export_dir / "cleanliness.json").write_text(

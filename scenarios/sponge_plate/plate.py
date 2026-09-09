@@ -114,6 +114,8 @@ class SolidPlate:
     ys: npt.NDArray[np.float64]
     heights: npt.NDArray[np.float64]
     base_z: float
+    scan_min_z: float = 0.0
+    """Lowest Z of the source scan; the solid is the scan shifted by ``-scan_min_z``."""
 
     @property
     def top_z(self) -> float:
@@ -166,7 +168,8 @@ def solidify_plate(
     flat base lies ``base_depth`` below that.
     """
     triangles = read_stl(stl_path)
-    triangles = triangles - np.array([0.0, 0.0, triangles[..., 2].min()])
+    scan_min_z = float(triangles[..., 2].min())
+    triangles = triangles - np.array([0.0, 0.0, scan_min_z])
     xs, ys, heights = top_heightfield(triangles, step)
     base_z = -float(base_depth)
     valid = np.isfinite(heights)
@@ -216,6 +219,7 @@ def solidify_plate(
         ys=ys,
         heights=heights_used,
         base_z=base_z,
+        scan_min_z=scan_min_z,
     )
 
 
