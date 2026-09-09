@@ -56,6 +56,20 @@ goals and success criteria.
 The old `scenarios/openarm_ball_bowl` import and executable paths remain as
 compatibility shims.
 
+## Scenario: sponge wipes plate
+
+[`scenarios/sponge_plate`](scenarios/sponge_plate) is a second task on the same
+workcell and runner contract: a soft finite-element sponge is picked up, pressed
+onto a scanned ceramic plate, dragged through three serpentine strokes until a
+cleanliness map of the dish floor is wiped, and put back on the desk. The
+sponge is held by pinch friction alone and visibly squashes and shears. See its
+[README](scenarios/sponge_plate/README.md) for the physics, randomization,
+exports, and the viewer options for watching the deformation:
+
+```bash
+docker compose run --rm --entrypoint python superdex scenarios/sponge_plate/runner.py --fixed --dry-run
+```
+
 ## Setup
 
 Install Git, Docker, and Docker Compose, then clone the repository and download

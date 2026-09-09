@@ -216,7 +216,10 @@ class OpenArmKinematics:
         reference: EmbodimentModel,
         contact_factory: Callable[[float], physics.ContactParams],
         collision_model: object,
+        *,
+        approach_pitch: float = 0.0,
     ) -> None:
+        """``approach_pitch`` [rad] tilts the level gripper nose-down about world Y."""
         self.scene = physics.create_scene("OpenArm v2 trajectory optimization")
         self.info = build_openarm_v2(self.scene, context, contact_factory)
         self.actor = self.info.actor
@@ -233,6 +236,14 @@ class OpenArmKinematics:
             * physics.Quaternion.rotation_y(GRIPPER_LEVEL_PITCH)
             * physics.Quaternion.rotation_z(GRIPPER_LEVEL_ROLL)
         )
+        if approach_pitch:
+            level_rotation = (
+                physics.Quaternion.from_rotation_vector(
+                    [0.0, float(approach_pitch), 0.0]
+                )
+                * level_rotation
+            )
+        self.approach_pitch = float(approach_pitch)
         self.solver = physics.experimental.create_ik_solver(self.scene)
         self.position_target = self.solver.create_position_target(
             self.ee_handle, GRASP_POINT_EE, [0.0, 0.0, 0.0], 1.0e5

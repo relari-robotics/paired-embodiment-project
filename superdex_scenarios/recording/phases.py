@@ -53,13 +53,17 @@ class PhaseLog:
     """Collect phase boundaries from a sampler callable.
 
     ``sampler`` returns ``(step, time_s, grasp_position, grasp_quaternion_xyzw,
-    object_position)`` for the current simulation state.
+    object_position)`` for the current simulation state.  ``phase_sequence``
+    defaults to the ball-and-bowl :data:`PHASE_SEQUENCE`; other tasks pass
+    their own ordered phase names.
     """
 
     FORMAT = "superdex-task-phases-v1"
 
     embodiment: str
     sampler: Callable[[], tuple[int, float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]]
+    phase_sequence: tuple[str, ...] = PHASE_SEQUENCE
+    """Ordered phase names this log enforces; tasks may supply their own."""
     records: list[PhaseRecord] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
     _next_phase_index: int = field(default=0, init=False, repr=False)
@@ -76,12 +80,12 @@ class PhaseLog:
 
     def begin(self, name: str) -> None:
         """Start ``name``; the previous phase (if open) ends at the same sample."""
-        if self._next_phase_index >= len(PHASE_SEQUENCE):
+        if self._next_phase_index >= len(self.phase_sequence):
             raise ValueError(
                 "The phase sequence is already complete; finish the episode before "
                 f"starting {name!r}."
             )
-        expected = PHASE_SEQUENCE[self._next_phase_index]
+        expected = self.phase_sequence[self._next_phase_index]
         if name != expected:
             raise ValueError(
                 f"Expected phase {expected!r}, got {name!r}; embodiment policies "
@@ -102,8 +106,8 @@ class PhaseLog:
         self.end()
         phase_count = self._next_phase_index
         self._next_phase_index = 0
-        if completed and phase_count != len(PHASE_SEQUENCE):
-            missing = PHASE_SEQUENCE[phase_count:]
+        if completed and phase_count != len(self.phase_sequence):
+            missing = self.phase_sequence[phase_count:]
             raise RuntimeError(
                 "Policy reported a completed episode before recording all task phases; "
                 f"missing {missing}."
@@ -125,7 +129,7 @@ class PhaseLog:
         return {
             "format": self.FORMAT,
             "embodiment": self.embodiment,
-            "phase_sequence": list(PHASE_SEQUENCE),
+            "phase_sequence": list(self.phase_sequence),
             "phases": [
                 {
                     "name": record.name,

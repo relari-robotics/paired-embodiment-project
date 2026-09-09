@@ -30,12 +30,27 @@ def _joint_dof_components(joint: object) -> tuple[str, ...]:
     return ("axis",)
 
 
+def _task_object(scenario: Any) -> tuple[physics.Actor, str]:
+    """Return the manipulated actor and its label.
+
+    A workcell may expose ``task_object``/``task_object_label`` (for example
+    the soft sponge of the sponge-and-plate task); the ball-and-bowl workcell
+    exposes ``ball``.
+    """
+    workcell = scenario.workcell
+    actor = getattr(workcell, "task_object", None)
+    if actor is None:
+        actor = workcell.ball
+    return actor, str(getattr(workcell, "task_object_label", "ball"))
+
+
 class TelemetryRecorder:
     """Stream full-rate physical telemetry and sparse contacts to disk.
 
     Motor torque is Mochi's generalized force from the articulated pose
     controller. Contact forces are reported in the simulation world frame.
-    Logical hand forces are derived only from link-to-ball contact queries.
+    Logical hand forces are derived only from link-to-object contact queries,
+    where the object is the workcell's manipulated actor (ball, sponge, ...).
     """
 
     FORMAT = "superdex-embodiment-telemetry-v2"
@@ -51,6 +66,7 @@ class TelemetryRecorder:
         self.scenario = scenario
         self.scene = scenario.scene
         self.info: EmbodimentModel = scenario.bot_info
+        self.task_object, self.object_label = _task_object(scenario)
         self.output_dir = output_dir
         self.time_step = float(time_step)
         self.cameras = list(cameras or ())
@@ -69,6 +85,11 @@ class TelemetryRecorder:
 
         self.actors = self._collect_contact_actors()
         self.actor_names = [actor.get_name() for actor in self.actors]
+        self.torque_actor_names = {
+            actor.get_name()
+            for actor in self.actors
+            if actor.get_type() in (physics.ActorType.RIGID, physics.ActorType.ARTICULATED)
+        }
         self.contact_group_actors = {
             group.name: self._actors_for_group(group)
             for group in self.info.contact_groups
@@ -81,17 +102,15 @@ class TelemetryRecorder:
             self._register_query(actor, physics.QueryType.TOTAL_CONTACT_FORCE)
 
         # Embodiment links are queried for embodiment-to-world contacts. The
-        # ball query adds desk and bowl contacts; embodiment contacts from that
-        # query are skipped to prevent duplicates.
+        # object query adds its desk/bowl/plate contacts; embodiment contacts
+        # from that query are skipped to prevent duplicates.
         self.embodiment_contact_actors: list[physics.Actor] = []
         for handle in self.info.actor.get_nested_link_actors():
             actor = self.scene.get_actor(handle)
             if actor.is_query_supported(physics.QueryType.CONTACT_POINTS):
                 self._register_query(actor, physics.QueryType.CONTACT_POINTS)
                 self.embodiment_contact_actors.append(actor)
-        self._register_query(
-            self.scenario.workcell.ball, physics.QueryType.CONTACT_POINTS
-        )
+        self._register_query(self.task_object, physics.QueryType.CONTACT_POINTS)
         self.embodiment_actor_names = {
             actor.get_name() for actor in self.embodiment_contact_actors
         }
@@ -251,19 +270,20 @@ class TelemetryRecorder:
                 ]
             )
         prefix = "gripper" if self.info.embodiment_id == "openarm_v2" else "hand"
+        obj = self.object_label
         for group in self.info.contact_groups:
             columns.extend(
                 [
-                    f"{prefix}/{group.name}_ball_force_world_x_n",
-                    f"{prefix}/{group.name}_ball_force_world_y_n",
-                    f"{prefix}/{group.name}_ball_force_world_z_n",
-                    f"{prefix}/{group.name}_ball_force_norm_n",
+                    f"{prefix}/{group.name}_{obj}_force_world_x_n",
+                    f"{prefix}/{group.name}_{obj}_force_world_y_n",
+                    f"{prefix}/{group.name}_{obj}_force_world_z_n",
+                    f"{prefix}/{group.name}_{obj}_force_norm_n",
                 ]
             )
         if self.info.embodiment_id == "openarm_v2":
             columns.extend(
                 [
-                    "gripper/two_jaw_ball_force_sum_n",
+                    f"gripper/two_jaw_{obj}_force_sum_n",
                     "gripper/pinch_force_single_jaw_equivalent_n",
                     "gripper/finger1_motor_torque_nm",
                     "gripper/finger2_motor_torque_nm",
@@ -274,7 +294,7 @@ class TelemetryRecorder:
         else:
             columns.extend(
                 [
-                    "hand/aggregate_ball_force_sum_n",
+                    f"hand/aggregate_{obj}_force_sum_n",
                     "hand/opposition_force_equivalent_n",
                     "hand/joint_motor_torque_abs_sum_nm",
                 ]
@@ -287,9 +307,7 @@ class TelemetryRecorder:
             vector = np.zeros(3, dtype=float)
             for actor in self.contact_group_actors[group.name]:
                 vector += np.asarray(
-                    actor.get_contact_force_from_actor_world(
-                        self.scenario.workcell.ball
-                    ),
+                    actor.get_contact_force_from_actor_world(self.task_object),
                     dtype=float,
                 )
             vectors.append(vector)
@@ -320,7 +338,11 @@ class TelemetryRecorder:
 
         for actor in self.actors:
             force = np.asarray(actor.get_contact_force_world(), dtype=float)
-            torque = np.asarray(actor.get_contact_torque_world(), dtype=float)
+            if actor.get_name() in self.torque_actor_names:
+                torque = np.asarray(actor.get_contact_torque_world(), dtype=float)
+            else:
+                # Soft actors report a total contact force but no wrench torque.
+                torque = np.zeros(3, dtype=float)
             force_norm = float(np.linalg.norm(force))
             torque_norm = float(np.linalg.norm(torque))
             row.extend([*force, force_norm, *torque, torque_norm])
@@ -375,9 +397,7 @@ class TelemetryRecorder:
         contacts: list[tuple[object, ...]] = []
         for actor in self.embodiment_contact_actors:
             contacts.extend(self._contacts_from(actor, skip_embodiment=False))
-        contacts.extend(
-            self._contacts_from(self.scenario.workcell.ball, skip_embodiment=True)
-        )
+        contacts.extend(self._contacts_from(self.task_object, skip_embodiment=True))
         if not contacts:
             return
         block = np.empty(len(contacts), dtype=self._contact_dtype)
@@ -524,7 +544,7 @@ class TelemetryRecorder:
             },
             "peak_contact_force_norm_n": self.peak_contact_force,
             "hand": {
-                "peak_group_ball_force_norm_n": self.peak_group_ball_force,
+                f"peak_group_{self.object_label}_force_norm_n": self.peak_group_ball_force,
                 "peak_equivalent_grip_force_n": self.peak_equivalent_grip_force,
                 "peak_joint_motor_torque_abs_sum_nm": (
                     self.peak_hand_motor_torque_abs_sum
@@ -533,11 +553,11 @@ class TelemetryRecorder:
         }
         if self.info.embodiment_id == "openarm_v2":
             summary["gripper"] = {
-                "peak_finger1_ball_force_norm_n": self.peak_group_ball_force.get(
-                    "finger1", 0.0
+                f"peak_finger1_{self.object_label}_force_norm_n": (
+                    self.peak_group_ball_force.get("finger1", 0.0)
                 ),
-                "peak_finger2_ball_force_norm_n": self.peak_group_ball_force.get(
-                    "finger2", 0.0
+                f"peak_finger2_{self.object_label}_force_norm_n": (
+                    self.peak_group_ball_force.get("finger2", 0.0)
                 ),
                 "peak_pinch_force_single_jaw_equivalent_n": (
                     self.peak_equivalent_grip_force
