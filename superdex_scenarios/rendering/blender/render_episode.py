@@ -36,6 +36,14 @@ import bpy  # type: ignore[import-not-found]
 import numpy as np
 from mathutils import Matrix, Quaternion, Vector  # type: ignore[import-not-found]
 
+try:
+    from .device import DEVICE_AUTO, SUPPORTED_DEVICES, configure_cycles_device
+    from .render_plan import partition_frames
+except ImportError:  # Blender executes this file as a standalone script.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from device import DEVICE_AUTO, SUPPORTED_DEVICES, configure_cycles_device
+    from render_plan import partition_frames
+
 BLENDER_RESOURCES = Path(bpy.utils.resource_path("LOCAL")) / "datafiles" / "studiolights" / "world"
 
 
@@ -60,6 +68,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--environment", default="interior.exr", help="Blender studio-light world HDR")
     parser.add_argument("--environment-strength", type=float, default=0.7)
     parser.add_argument(
+        "--device",
+        choices=SUPPORTED_DEVICES,
+        default=DEVICE_AUTO,
+        type=str.upper,
+        help="Cycles backend: AUTO, OPTIX, CUDA, METAL, or CPU",
+    )
+    parser.add_argument(
+        "--device-index",
+        type=int,
+        default=None,
+        help="GPU index for this worker; omit to use all visible GPUs",
+    )
+    parser.add_argument(
         "--lens",
         type=float,
         default=None,
@@ -69,6 +90,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--frame-index", type=int, default=None, help="render only this recorded frame")
+    parser.add_argument("--worker-index", type=int, default=0, help="zero-based frame worker index")
+    parser.add_argument("--worker-count", type=int, default=1, help="number of frame workers")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="skip output frames that already exist and are non-empty",
+    )
+    parser.add_argument("--overwrite", action="store_true", help="overwrite existing output frames")
     parser.add_argument("--save-blend", default=None, help="also save the built scene as a .blend")
     return parser.parse_args(argv)
 
@@ -514,25 +543,26 @@ def setup_render(args: argparse.Namespace) -> None:
     if args.engine == "CYCLES":
         scene.render.engine = "CYCLES"
         preferences = bpy.context.preferences.addons["cycles"].preferences
-        try:
-            preferences.compute_device_type = "METAL"
-        except TypeError:
-            pass
-        preferences.refresh_devices()
-        gpu = False
-        for device in preferences.devices:
-            device.use = device.type != "CPU"
-            gpu = gpu or device.use
-        scene.cycles.device = "GPU" if gpu else "CPU"
+        selection = configure_cycles_device(
+            preferences,
+            scene,
+            requested=args.device,
+            device_index=args.device_index,
+        )
         scene.cycles.samples = args.samples
         scene.cycles.use_adaptive_sampling = True
         scene.cycles.adaptive_threshold = 0.02
         scene.cycles.use_denoising = True
+        try:
+            scene.render.use_persistent_data = True
+        except AttributeError:
+            pass
         scene.cycles.max_bounces = 8
         scene.cycles.caustics_reflective = False
         scene.cycles.caustics_refractive = False
         print(
             "Cycles device:", scene.cycles.device,
+            selection.backend,
             [(d.name, d.type, d.use) for d in preferences.devices],
         )
     else:
@@ -688,21 +718,40 @@ def main() -> None:
     if args.save_blend:
         bpy.ops.wm.save_as_mainfile(filepath=str(Path(args.save_blend).resolve()))
 
+    if args.worker_count < 1:
+        raise ValueError("--worker-count must be positive")
+    if not 0 <= args.worker_index < args.worker_count:
+        raise ValueError("--worker-index must be within --worker-count")
+    if args.frame_index is not None and args.worker_count != 1:
+        raise ValueError("--frame-index cannot be combined with multiple workers")
+
     if args.frame_index is not None:
         indices = [args.frame_index]
+        output_offset = 0
     else:
-        indices = episode.frame_indices(args.fps, args.start, args.end)
-    print(f"Rendering {len(indices)} frames with {args.engine} at {args.width}x{args.height}")
+        all_indices = episode.frame_indices(args.fps, args.start, args.end)
+        partition = partition_frames(len(all_indices), args.worker_index, args.worker_count)
+        indices = all_indices[partition.start : partition.stop]
+        output_offset = partition.start
+    print(
+        f"Rendering {len(indices)} frames with {args.engine} at {args.width}x{args.height} "
+        f"(worker {args.worker_index + 1}/{args.worker_count})"
+    )
     started = time.time()
     for output_index, frame_index in enumerate(indices):
         episode.apply_frame(frame_index)
         camera.apply_frame(frame_index)
-        bpy.context.scene.render.filepath = str(output / f"frame_{output_index:05d}.png")
+        global_output_index = output_offset + output_index
+        frame_path = output / f"frame_{global_output_index:05d}.png"
+        if args.resume and not args.overwrite and frame_path.exists() and frame_path.stat().st_size > 0:
+            print(f"  frame {global_output_index + 1}: already exists, skipping")
+            continue
+        bpy.context.scene.render.filepath = str(frame_path)
         bpy.ops.render.render(write_still=True)
         if output_index % 10 == 0 or output_index == len(indices) - 1:
             elapsed = time.time() - started
             print(
-                f"  frame {output_index + 1}/{len(indices)} (recorded {frame_index}) "
+                f"  frame {global_output_index + 1} (recorded {frame_index}) "
                 f"{elapsed:.0f}s elapsed, {elapsed / (output_index + 1):.1f}s/frame"
             )
     print(f"Frames written to {output}")
