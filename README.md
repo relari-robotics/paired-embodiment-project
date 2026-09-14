@@ -71,6 +71,31 @@ Blender pipeline for photorealistic renders:
 docker compose run --rm --entrypoint python superdex scenarios/sponge_plate/runner.py --fixed --dry-run
 ```
 
+## Scenario: assemble and pack an organizer
+
+[`scenarios/organizer`](scenarios/organizer/README.md) uses the same table and
+OpenArm to insert two physical dividers and sort three parts into compartments.
+Its state-based policy recomputes grasps, paths, and placement targets from
+actual poses, supports seeded position variation and explicit layout files,
+and exports joint trajectories, contact forces, object motion, and Blender
+recordings. The tray is fixed; the dividers and parts move through contact.
+
+```bash
+docker compose run --rm --entrypoint python superdex -m scenarios.organizer --fixed --dry-run
+```
+
+## Scenario: sort wrapped tea
+
+[`scenarios/tea_sorting`](scenarios/tea_sorting/README.md) sorts red, yellow, and
+blue wrapped tea sachets into a wooden container on the same table. It combines
+a pose-relative physical grasping policy with a dedicated Cycles replay renderer:
+8K photographed wood, printed sachets, paper microtexture, heat seals, and creases.
+Packets currently use rigid contact physics; paper bending is not simulated.
+
+```bash
+docker compose run --rm --entrypoint python superdex -m scenarios.tea_sorting --fixed --dry-run
+```
+
 ## Setup
 
 Install Git, Docker, and Docker Compose, then clone the repository and download

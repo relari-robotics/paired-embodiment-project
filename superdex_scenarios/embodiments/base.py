@@ -85,6 +85,14 @@ class EmbodimentModel:
     hidden_render_link_names: frozenset[str] = field(default_factory=frozenset)
     controlled_link_names: frozenset[str] = field(default_factory=frozenset)
     tracking: dict[str, JointTrackingSpec] = field(default_factory=dict)
+    dof_groups: dict[str, npt.NDArray[np.int32]] = field(default_factory=dict)
+    """Named DOF groups (``right_arm``, ``right_gripper``, ``left_arm`` ...).
+
+    Trajectory files address joints through these names; see
+    :mod:`superdex_scenarios.replay`.
+    """
+    dof_names: tuple[str, ...] = ()
+    """Joint name of every articulation DOF, in actor DOF order."""
 
     @property
     def controlled_dofs(self) -> npt.NDArray[np.int32]:

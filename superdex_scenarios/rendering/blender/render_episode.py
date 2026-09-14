@@ -108,9 +108,9 @@ def make_wood_material() -> bpy.types.Material:
     bsdf = principled(material)
     coords = tree.nodes.new("ShaderNodeTexCoord")
     mapping = tree.nodes.new("ShaderNodeMapping")
-    mapping.inputs["Scale"].default_value = (1.0, 25.0, 1.0)
+    mapping.inputs["Scale"].default_value = (1.0, 12.0, 1.0)
     grain = tree.nodes.new("ShaderNodeTexNoise")
-    grain.inputs["Scale"].default_value = 4.0
+    grain.inputs["Scale"].default_value = 6.0
     grain.inputs["Detail"].default_value = 10.0
     grain.inputs["Roughness"].default_value = 0.65
     ramp = tree.nodes.new("ShaderNodeValToRGB")
@@ -211,6 +211,100 @@ def shade_smooth(obj: bpy.types.Object) -> None:
         polygon.use_smooth = True
 
 
+def _noise_roughness(tree, bsdf, base: float, spread: float, scale: float) -> None:
+    """Modulate roughness with fine noise so metal and plastic are not perfectly uniform."""
+    noise = tree.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = scale
+    noise.inputs["Detail"].default_value = 6.0
+    ramp = tree.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = 0.35
+    ramp.inputs["From Max"].default_value = 0.65
+    ramp.inputs["To Min"].default_value = base - spread
+    ramp.inputs["To Max"].default_value = base + spread
+    tree.links.new(noise.outputs["Fac"], ramp.inputs["Value"])
+    tree.links.new(ramp.outputs["Result"], bsdf.inputs["Roughness"])
+
+
+def _micro_bump(tree, bsdf, scale: float, strength: float, distance: float = 0.0004) -> None:
+    noise = tree.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = scale
+    noise.inputs["Detail"].default_value = 8.0
+    noise.inputs["Roughness"].default_value = 0.75
+    bump = tree.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = strength
+    bump.inputs["Distance"].default_value = distance
+    tree.links.new(noise.outputs["Fac"], bump.inputs["Height"])
+    tree.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+
+
+def make_robot_materials() -> dict[str, bpy.types.Material]:
+    """Physically based replacements for the flat OpenArm GLB materials, by name prefix."""
+    plastic = new_material("OpenArm Plastic")
+    bsdf = principled(plastic)
+    set_input(bsdf, "Base Color", (0.020, 0.020, 0.023, 1.0))
+    set_input(bsdf, "Specular IOR Level", 0.45)
+    _noise_roughness(plastic.node_tree, bsdf, 0.52, 0.10, 90.0)
+    _micro_bump(plastic.node_tree, bsdf, 900.0, 0.12)
+
+    anodized = new_material("OpenArm Anodized Aluminium")
+    bsdf = principled(anodized)
+    set_input(bsdf, "Base Color", (0.040, 0.040, 0.044, 1.0))
+    set_input(bsdf, "Metallic", 0.85)
+    set_input(bsdf, "Coat Weight", 0.3)
+    set_input(bsdf, "Coat Roughness", 0.12)
+    _noise_roughness(anodized.node_tree, bsdf, 0.30, 0.06, 140.0)
+    _micro_bump(anodized.node_tree, bsdf, 700.0, 0.18)
+
+    raw = new_material("OpenArm Machined Aluminium")
+    bsdf = principled(raw)
+    set_input(bsdf, "Base Color", (0.80, 0.81, 0.83, 1.0))
+    set_input(bsdf, "Metallic", 1.0)
+    _noise_roughness(raw.node_tree, bsdf, 0.30, 0.08, 120.0)
+    _micro_bump(raw.node_tree, bsdf, 600.0, 0.22)
+
+    steel = new_material("OpenArm Black Steel")
+    bsdf = principled(steel)
+    set_input(bsdf, "Base Color", (0.06, 0.06, 0.065, 1.0))
+    set_input(bsdf, "Metallic", 1.0)
+    _noise_roughness(steel.node_tree, bsdf, 0.40, 0.06, 100.0)
+    return {
+        "M_OpenArm_Plastic_Black": plastic,
+        "M_OpenArm_Aluminum_Black": anodized,
+        "M_OpenArm_Aluminum_Raw": raw,
+        "M_OpenArm_Steel_Black": steel,
+    }
+
+
+_ROBOT_MATERIALS: dict[str, bpy.types.Material] = {}
+
+
+def finish_robot_mesh(obj: bpy.types.Object) -> None:
+    """Smooth curved surfaces, keep machined edges sharp, bevel them to catch highlights."""
+    if obj.type != "MESH":
+        return
+    if not _ROBOT_MATERIALS:
+        _ROBOT_MATERIALS.update(make_robot_materials())
+    for slot in obj.material_slots:
+        if slot.material is None:
+            continue
+        for prefix, replacement in _ROBOT_MATERIALS.items():
+            if slot.material.name.startswith(prefix):
+                slot.material = replacement
+                break
+    for polygon in obj.data.polygons:
+        polygon.use_smooth = True
+    split = obj.modifiers.new("Sharp edges", type="EDGE_SPLIT")
+    split.split_angle = math.radians(32.0)
+    split.use_edge_angle = True
+    split.use_edge_sharp = True
+    bevel = obj.modifiers.new("Edge bevel", type="BEVEL")
+    bevel.width = 0.0006
+    bevel.segments = 2
+    bevel.limit_method = "ANGLE"
+    bevel.angle_limit = math.radians(32.0)
+    bevel.harden_normals = False
+
+
 def import_glb(path: str, name: str) -> bpy.types.Object:
     """Import a GLB and return an empty that parents everything it created."""
     before = set(bpy.data.objects)
@@ -219,6 +313,7 @@ def import_glb(path: str, name: str) -> bpy.types.Object:
     root = bpy.data.objects.new(f"{name}/root", None)
     bpy.context.scene.collection.objects.link(root)
     for obj in created:
+        finish_robot_mesh(obj)
         if obj.parent is None or obj.parent not in created:
             obj.parent = root
     return root
@@ -268,7 +363,7 @@ def setup_world(environment: str, strength: float) -> None:
     background.inputs["Strength"].default_value = strength
     # Key light: a large soft area light above and to the camera's right.
     light_data = bpy.data.lights.new("Key", type="AREA")
-    light_data.energy = 170.0
+    light_data.energy = 200.0
     light_data.size = 1.2
     light_data.color = (1.0, 0.97, 0.92)
     key = bpy.data.objects.new("Key", light_data)
@@ -282,6 +377,16 @@ def setup_world(environment: str, strength: float) -> None:
     bpy.context.scene.collection.objects.link(fill)
     fill.location = (-0.8, 1.2, 1.6)
     fill.rotation_euler = (math.radians(-40.0), 0.0, math.radians(-150.0))
+    # Rim light behind the robot so the dark actuator housings separate from the room.
+    rim_data = bpy.data.lights.new("Rim", type="AREA")
+    rim_data.energy = 140.0
+    rim_data.size = 0.8
+    rim_data.color = (0.92, 0.95, 1.0)
+    rim = bpy.data.objects.new("Rim", rim_data)
+    bpy.context.scene.collection.objects.link(rim)
+    rim.location = (-1.3, 0.6, 1.5)
+    direction = Vector((-0.3, 0.0, 0.6)) - rim.location
+    rim.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 
 def new_camera(lens: float) -> bpy.types.Object:
@@ -439,6 +544,7 @@ def setup_render(args: argparse.Namespace) -> None:
             pass
     scene.view_settings.view_transform = "AgX"
     scene.view_settings.look = "AgX - Medium High Contrast"
+    scene.view_settings.exposure = -0.45
 
 
 class EpisodeScene:

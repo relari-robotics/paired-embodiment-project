@@ -1,0 +1,5 @@
+{
+  "comment": "Independently shift the box and all three packet presentation cradles; no policy edits.",
+  "organizer_xy": [-0.007, 0.007],
+  "part_xy": [[-0.034, -0.386], [-0.165, -0.144], [-0.046, 0.386]]
+}
