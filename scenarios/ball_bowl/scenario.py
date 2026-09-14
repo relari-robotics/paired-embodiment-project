@@ -48,9 +48,11 @@ from superdex_scenarios.planning import TrajOptTrajectoryOptimizer
 
 from .collision import BallBowlCollisionModel
 
-# Workcell dimensions.  SuperDex uses metres and a Z-up world.
-DESK_MIN = np.array([-0.36, -0.38, 0.338], dtype=float)
-DESK_SIZE = np.array([1.02, 0.76, 0.05], dtype=float)
+# Workcell dimensions. SuperDex uses metres and a Z-up world. The robot is at
+# the -X edge of the desk and faces +X, so the 47-inch edge runs left-to-right
+# along Y and faces the robot; the 24-inch dimension is the desk depth along X.
+DESK_SIZE = np.array([24.0 * 0.0254, 47.0 * 0.0254, 0.05], dtype=float)
+DESK_MIN = np.array([-0.36, -0.5 * DESK_SIZE[1], 0.338], dtype=float)
 DESK_TOP_Z = float(DESK_MIN[2] + DESK_SIZE[2])
 DESK_LEG_SIZE = np.array([0.055, 0.055, DESK_MIN[2]], dtype=float)
 

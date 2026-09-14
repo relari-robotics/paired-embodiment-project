@@ -64,7 +64,9 @@ class BlenderSceneRecorder:
         scene: The physics scene to record.
         time_step: Physics step [s].
         render_every_steps: Steps between captures (sets the recorded rate).
-        cameras: ``{name: {"look_from": [...], "look_at": [...]}}`` presets.
+        cameras: Named fixed look-at presets or calibrated fixed/actor camera
+            dictionaries. Actor cameras are resolved against recorded actors by
+            their ``actor_suffix`` when rendered.
         materials: ``{actor_name: material_name}`` hints for the renderer.
         colors: ``{actor_name: [r, g, b]}`` base colours for generic materials.
         overrides: ``{actor_name: {...}}`` renderer overrides, for example
@@ -82,7 +84,7 @@ class BlenderSceneRecorder:
         *,
         time_step: float,
         render_every_steps: int,
-        cameras: dict[str, dict[str, list[float]]],
+        cameras: dict[str, dict[str, Any]],
         materials: dict[str, str] | None = None,
         colors: dict[str, list[float]] | None = None,
         overrides: dict[str, dict[str, Any]] | None = None,

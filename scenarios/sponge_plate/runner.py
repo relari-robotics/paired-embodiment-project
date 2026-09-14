@@ -336,6 +336,8 @@ DEFAULT_LOOK_FROM = (0.42, -0.62, 0.66)
 DEFAULT_LOOK_AT = (-0.04, -0.06, 0.40)
 CAMERA_PRESETS: dict[str, tuple[tuple[float, float, float], tuple[float, float, float]]] = {
     "workcell": (DEFAULT_LOOK_FROM, DEFAULT_LOOK_AT),
+    "front": ((1.35, 0.0, 0.82), (-0.03, 0.0, 0.43)),
+    "top": ((-0.03, 0.0, 1.75), (-0.03, 0.0, 0.40)),
     "plate": ((0.22, -0.34, 0.52), (-0.05, 0.0, 0.40)),
     "sponge": ((0.28, -0.42, 0.50), (0.0, -0.20, 0.41)),
     "side": ((-0.05, -0.55, 0.47), (-0.05, 0.0, 0.41)),
@@ -580,8 +582,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--camera",
         choices=sorted(CAMERA_PRESETS),
-        default="workcell",
-        help="viewer camera preset (default: workcell; 'plate' and 'side' zoom on the wipe)",
+        default="front",
+        help="viewer camera preset (default: front; 'plate' and 'side' zoom on the wipe)",
     )
     parser.add_argument(
         "--no-trajectory",
@@ -845,8 +847,16 @@ def main() -> None:
                 time_step=task.TIME_STEP,
                 render_every_steps=task.RENDER_EVERY_STEPS,
                 cameras={
-                    name: {"look_from": list(look_from), "look_at": list(look_at)}
-                    for name, (look_from, look_at) in CAMERA_PRESETS.items()
+                    **{
+                        name: {
+                            "kind": "fixed",
+                            "look_from": list(look_from),
+                            "look_at": list(look_at),
+                            **({"up_world": [1.0, 0.0, 0.0]} if name == "top" else {}),
+                        }
+                        for name, (look_from, look_at) in CAMERA_PRESETS.items()
+                    },
+                    **{str(camera["name"]): camera for camera in cameras},
                 },
                 materials={
                     **{actor.get_name(): "wood" for actor in scenario.workcell.desk_actors},

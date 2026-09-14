@@ -49,7 +49,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recording", required=True, help="directory with scene.json and frames.npz")
     parser.add_argument("--output", required=True, help="directory for frame_%%05d.png")
-    parser.add_argument("--camera", default="plate", help="camera preset name from scene.json")
+    parser.add_argument("--camera", default="front", help="camera name from scene.json")
     parser.add_argument("--fps", type=float, default=24.0, help="output frame rate")
     parser.add_argument("--start", type=float, default=0.0, help="start time [s]")
     parser.add_argument("--end", type=float, default=None, help="end time [s] (default: all)")
@@ -59,7 +59,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=96)
     parser.add_argument("--environment", default="interior.exr", help="Blender studio-light world HDR")
     parser.add_argument("--environment-strength", type=float, default=0.7)
-    parser.add_argument("--lens", type=float, default=40.0, help="camera focal length [mm]")
+    parser.add_argument(
+        "--lens",
+        type=float,
+        default=None,
+        help=(
+            "override camera focal length [mm] "
+            "(default: 40 for presets, calibrated for robot cameras)"
+        ),
+    )
     parser.add_argument("--frame-index", type=int, default=None, help="render only this recorded frame")
     parser.add_argument("--save-blend", default=None, help="also save the built scene as a .blend")
     return parser.parse_args(argv)
@@ -145,11 +153,12 @@ def make_ceramic_material(texture: Path | None) -> bpy.types.Material:
 
 
 def make_sponge_material(color: list[float] | None) -> bpy.types.Material:
-    """Yellow cellulose body with a darker green scouring layer on the top face."""
+    """Uniformly coloured cellulose sponge material."""
     material = new_material("SuperDex Sponge")
     tree = material.node_tree
     bsdf = principled(material)
     base = tuple(color) if color else (0.96, 0.72, 0.10)
+    set_input(bsdf, "Base Color", (*base, 1.0))
     set_input(bsdf, "Roughness", 0.95)
     set_input(bsdf, "Subsurface Weight", 0.02)
     set_input(bsdf, "Subsurface Radius", (0.004, 0.003, 0.002))
@@ -160,20 +169,7 @@ def make_sponge_material(color: list[float] | None) -> bpy.types.Material:
     bump = tree.nodes.new("ShaderNodeBump")
     bump.inputs["Strength"].default_value = 1.0
     bump.inputs["Distance"].default_value = 0.006
-    geometry = tree.nodes.new("ShaderNodeNewGeometry")
-    separate = tree.nodes.new("ShaderNodeSeparateXYZ")
-    threshold = tree.nodes.new("ShaderNodeMath")
-    threshold.operation = "GREATER_THAN"
-    threshold.inputs[1].default_value = 0.85
-    mix = tree.nodes.new("ShaderNodeMix")
-    mix.data_type = "RGBA"
-    mix.inputs["A"].default_value = (*base, 1.0)
-    mix.inputs["B"].default_value = (0.12, 0.42, 0.18, 1.0)
     links = tree.links
-    links.new(geometry.outputs["Normal"], separate.inputs["Vector"])
-    links.new(separate.outputs["Z"], threshold.inputs[0])
-    links.new(threshold.outputs["Value"], mix.inputs["Factor"])
-    links.new(mix.outputs["Result"], bsdf.inputs["Base Color"])
     links.new(noise.outputs["Fac"], bump.inputs["Height"])
     links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
     return material
@@ -288,18 +284,118 @@ def setup_world(environment: str, strength: float) -> None:
     fill.rotation_euler = (math.radians(-40.0), 0.0, math.radians(-150.0))
 
 
-def setup_camera(look_from: list[float], look_at: list[float], lens: float) -> bpy.types.Object:
+def new_camera(lens: float) -> bpy.types.Object:
     camera_data = bpy.data.cameras.new("Camera")
     camera_data.lens = lens
     camera_data.sensor_width = 36.0
+    # Wrist cameras routinely observe the gripper and manipulated object from
+    # only a few centimetres away. Blender's 10 cm default clips straight
+    # through them, so use a near plane suitable for robot-mounted cameras.
+    camera_data.clip_start = 0.005
     camera = bpy.data.objects.new("Camera", camera_data)
     bpy.context.scene.collection.objects.link(camera)
+    bpy.context.scene.camera = camera
+    return camera
+
+
+def setup_camera(
+    look_from: list[float],
+    look_at: list[float],
+    lens: float,
+    up_world: list[float] | None = None,
+) -> bpy.types.Object:
+    camera = new_camera(lens)
     eye = Vector(look_from)
     camera.location = eye
     direction = Vector(look_at) - eye
-    camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
-    bpy.context.scene.camera = camera
+    if up_world is None:
+        camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+    else:
+        forward = direction.normalized()
+        right = forward.cross(Vector(up_world)).normalized()
+        up = right.cross(forward).normalized()
+        rotation = Matrix((right, up, -forward)).transposed().to_4x4()
+        rotation.translation = eye
+        camera.matrix_world = rotation
     return camera
+
+
+def calibrated_lens(spec: dict) -> float:
+    """Convert pixel focal length to Blender's 36 mm horizontal sensor model."""
+    intrinsics = spec.get("intrinsics") or {}
+    width = float(intrinsics.get("width_px", 0.0))
+    fx = float(intrinsics.get("fx_px", 0.0))
+    return 36.0 * fx / width if width > 0.0 and fx > 0.0 else 40.0
+
+
+class EpisodeCamera:
+    """A fixed look-at camera or a calibrated camera attached to a recorded actor."""
+
+    def __init__(
+        self,
+        episode: "EpisodeScene",
+        name: str,
+        spec: dict,
+        lens_override: float | None,
+    ) -> None:
+        lens = lens_override if lens_override is not None else calibrated_lens(spec)
+        self.episode = episode
+        self.actor_index: int | None = None
+        if "look_from" in spec and "look_at" in spec:
+            up_world = spec.get("up_world")
+            if up_world is None and name == "top":
+                up_world = [1.0, 0.0, 0.0]
+            self.camera = setup_camera(
+                spec["look_from"], spec["look_at"], lens, up_world
+            )
+            return
+
+        self.camera = new_camera(lens)
+        kind = spec.get("kind")
+        if kind == "fixed":
+            pose = spec.get("world_from_camera_cv")
+            if not isinstance(pose, dict):
+                raise RuntimeError(f"Fixed camera {name!r} has no world pose")
+            right = Vector(pose["right_world"])
+            up = Vector(pose["up_world"])
+            forward = Vector(pose["forward_world"])
+            position = Vector(pose["position_m"])
+            self.camera.matrix_world = Matrix(
+                (
+                    (right.x, up.x, -forward.x, position.x),
+                    (right.y, up.y, -forward.y, position.y),
+                    (right.z, up.z, -forward.z, position.z),
+                    (0.0, 0.0, 0.0, 1.0),
+                )
+            )
+            return
+        if kind != "actor":
+            raise RuntimeError(f"Unsupported camera kind {kind!r} for {name!r}")
+
+        suffix = str(spec.get("actor_suffix", ""))
+        matches = [
+            int(entry["index"])
+            for entry in episode.spec["actors"]
+            if entry["name"] == suffix or entry["name"].endswith(suffix)
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"Camera {name!r} expected one recorded actor matching {suffix!r}; "
+                f"found {len(matches)}"
+            )
+        self.actor_index = matches[0]
+        self.apply_frame(0)
+
+    def apply_frame(self, frame_index: int) -> None:
+        if self.actor_index is None:
+            return
+        # Recorded camera actors use OpenCV axes (+X right, +Y down, +Z
+        # forward). Blender cameras use +X right, +Y up, -Z forward.
+        cv_to_blender = Matrix.Diagonal((1.0, -1.0, -1.0, 1.0))
+        self.camera.matrix_world = (
+            matrix_from_vector(self.episode.transforms[frame_index, self.actor_index])
+            @ cv_to_blender
+        )
 
 
 def setup_render(args: argparse.Namespace) -> None:
@@ -476,8 +572,12 @@ def main() -> None:
     setup_render(args)
     setup_world(args.environment, args.environment_strength)
     episode = EpisodeScene(recording, args)
-    camera = episode.spec["cameras"][args.camera]
-    setup_camera(camera["look_from"], camera["look_at"], args.lens)
+    if args.camera not in episode.spec["cameras"]:
+        available = ", ".join(sorted(episode.spec["cameras"]))
+        raise RuntimeError(f"Unknown camera {args.camera!r}; available cameras: {available}")
+    camera = EpisodeCamera(
+        episode, args.camera, episode.spec["cameras"][args.camera], args.lens
+    )
     add_floor()
     if args.save_blend:
         bpy.ops.wm.save_as_mainfile(filepath=str(Path(args.save_blend).resolve()))
@@ -490,6 +590,7 @@ def main() -> None:
     started = time.time()
     for output_index, frame_index in enumerate(indices):
         episode.apply_frame(frame_index)
+        camera.apply_frame(frame_index)
         bpy.context.scene.render.filepath = str(output / f"frame_{output_index:05d}.png")
         bpy.ops.render.render(write_still=True)
         if output_index % 10 == 0 or output_index == len(indices) - 1:

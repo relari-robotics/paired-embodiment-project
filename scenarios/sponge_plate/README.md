@@ -44,11 +44,13 @@ The interactive viewer renders the deforming sponge surface every frame:
 
 ```bash
 uv run --no-project python scenarios/sponge_plate/runner.py --fixed
-uv run --no-project python scenarios/sponge_plate/runner.py --fixed --camera plate --no-trajectory
+uv run --no-project python scenarios/sponge_plate/runner.py --fixed --camera front --no-trajectory
+uv run --no-project python scenarios/sponge_plate/runner.py --fixed --camera top --no-trajectory
 uv run --no-project python scenarios/sponge_plate/runner.py --fixed --camera side --frames exports/frames --frame-every 8
 ```
 
-`--camera` picks a preset (`workcell`, `plate`, `sponge`, `side`), `--no-trajectory`
+`--camera` picks a fixed viewer preset (`front`, `top`, `workcell`, `plate`,
+`sponge`, `side`), `--no-trajectory`
 hides the planned grasp-point curve, and `--frames DIR` saves a PNG every
 `--frame-every` rendered frames so a run can be scrubbed afterwards. `--debugger`
 streams the scene to the SuperDex Physics Debugger instead. Both need a
@@ -78,7 +80,7 @@ uv run --no-project python scenarios/sponge_plate/runner.py --fixed \
 uv run --no-project python superdex_scenarios/rendering/blender/make_video.py \
   --recording scenarios/sponge_plate/exports/blender_fixed \
   --output scenarios/sponge_plate/exports/sponge_plate_fixed_blender.mp4 \
-  --fps 24 --width 1280 --height 720 --samples 64 --camera plate --lens 35
+  --fps 24 --width 1280 --height 720 --samples 64 --camera front
 ```
 
 `--record-blender DIR` runs headless and writes `scene.json` (which GLB drives
@@ -91,6 +93,10 @@ fast preview, `--samples`, `--environment studio.exr`, `--start/--end` to render
 a time range, `--frame-index N` for one still, `--save-blend file.blend` to open
 the built scene interactively). Blender 4.2 or newer is found through
 `--blender`, the `BLENDER` variable, `PATH`, or the macOS application bundle.
+Blender recordings provide `front` and `top` fixed views plus the moving
+`wrist_right` and `wrist_left` cameras. The wrist views use their modeled lens
+intrinsics unless `--lens` explicitly overrides them. Render each view by
+running `make_video.py` once with the corresponding `--camera` value.
 With Cycles on an Apple M3 Pro GPU a 720p frame takes about 5 s, so the 23 s
 fixed episode renders in roughly 45 minutes; EEVEE is several times faster.
 The textured plate scan (`assets/ycb_029_plate/textured.obj` and its texture)
@@ -100,7 +106,7 @@ is used only by this renderer.
 
 | Object | Model |
 | --- | --- |
-| Desk | Same wooden desk as the ball-and-bowl task |
+| Desk | 47 × 24 inches; the 47-inch edge runs left-to-right facing the robot |
 | Plate | YCB object 029 scan, solidified at load time (see `plate.py` and `assets/ycb_029_plate/README.md`); static, ceramic friction 0.42 |
 | Sponge | 10 × 6.5 × 4.5 cm neo-Hookean tetrahedral block (Kuhn-subdivided grid of about 1 cm, 385 nodes, 1 440 tets), Poisson 0.30, density 100 kg/m³, friction 0.85 |
 
