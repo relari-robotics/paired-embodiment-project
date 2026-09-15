@@ -28,6 +28,7 @@ from .geometry import (
     SLOT_Y,
     BIN_Y,
     PACKET_SIZE,
+    HANDOFF_XY,
     TEAS,
     COLORS,
     box_components,
@@ -141,15 +142,29 @@ class OrganizerScenario(BaseScenario):
                         sdf=fine_sdf,
                     )
                 )
+            transfer_cradle = create_body(
+                scene,
+                "tea/transfer_cradle",
+                holder_components(),
+                [*HANDOFF_XY, DESK_TOP_Z],
+                static=True,
+                sdf=fine_sdf,
+            )
             colors = {a.get_name(): WOOD_COLOR.tolist() for a in desk}
             colors[organizer.get_name()] = [0.45, 0.26, 0.11]
             colors.update(
                 {a.get_name(): list(COLORS[t]) for a, t in zip(parts, spec.tea_order)}
             )
-            colors.update({a.get_name(): [0.23, 0.25, 0.24] for a in holders})
+            colors.update(
+                {
+                    a.get_name(): [0.23, 0.25, 0.24]
+                    for a in [*holders, transfer_cradle]
+                }
+            )
             collisions = CollisionModel(scene)
             collisions.obstacles = [(organizer, boxes)]
             collisions.obstacles += [(a, holder_components()) for a in holders]
+            collisions.obstacles.append((transfer_cradle, holder_components()))
             collisions.obstacles += [(a, [((0, 0, 0), PACKET_SIZE)]) for a in parts]
             kin = OpenArmKinematics(
                 context, info, contact_params, collisions, approach_pitch=np.radians(30)

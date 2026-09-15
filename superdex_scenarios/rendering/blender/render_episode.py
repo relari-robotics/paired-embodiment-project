@@ -98,6 +98,14 @@ def parse_args() -> argparse.Namespace:
         help="skip output frames that already exist and are non-empty",
     )
     parser.add_argument("--overwrite", action="store_true", help="overwrite existing output frames")
+    parser.add_argument(
+        "--hide-robot",
+        action="store_true",
+        help=(
+            "hide articulated robot render meshes while retaining their recorded "
+            "transforms for actor-mounted cameras"
+        ),
+    )
     parser.add_argument("--save-blend", default=None, help="also save the built scene as a .blend")
     return parser.parse_args(argv)
 
@@ -632,6 +640,15 @@ class EpisodeScene:
             if kind == "glb":
                 glb = entry["glb"]
                 obj = import_glb(glb["path"], name)
+                if args.hide_robot and "bots" in Path(glb["path"]).parts:
+                    # Keep the actor root in ``self.objects`` so wrist cameras
+                    # can still follow the recorded link pose. Hiding every
+                    # descendant removes both the robot and its shadows.
+                    stack = [obj]
+                    while stack:
+                        target = stack.pop()
+                        target.hide_render = True
+                        stack.extend(target.children)
                 self.local[index] = matrix_from_vector(np.asarray(glb["local_transform"]))
                 sx, sy, sz = glb["scale"]
                 if not np.allclose([sx, sy, sz], 1.0):

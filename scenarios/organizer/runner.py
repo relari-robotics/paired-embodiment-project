@@ -197,7 +197,10 @@ def main(*, task_module=task, policy_class=OpenArmPolicy):
         "--no-collision-check",
         "--no-trajopt",
         action="store_true",
-        help="Diagnostic: skip conservative free-space collision screening",
+        help=(
+            "Diagnostic: disable free-space collision planning "
+            "(TrajOpt for tea sorting; screening for organizer)"
+        ),
     )
     parser.add_argument("--export-dir", type=Path)
     parser.add_argument(

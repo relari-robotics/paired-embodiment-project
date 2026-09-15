@@ -1,5 +1,10 @@
 {
-  "comment": "Independently shift the box and all three packet presentation cradles; no policy edits.",
-  "organizer_xy": [-0.007, 0.007],
-  "part_xy": [[-0.034, -0.386], [-0.165, -0.144], [-0.046, 0.386]]
+  "comment": "Workspace-wide layout: blue starts on the right, red on the left, and both require a physical cross-arm relay.",
+  "organizer_xy": [-0.019767757315013672, -0.004030177131717534],
+  "part_xy": [
+    [-0.08600839631680075, -0.39176069555030696],
+    [-0.11598592636480845, 0.21941810573932283],
+    [-0.17369384972867552, -0.4270592377602545]
+  ],
+  "tea_order": [2, 0, 1]
 }

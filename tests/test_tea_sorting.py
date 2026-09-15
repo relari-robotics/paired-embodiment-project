@@ -38,10 +38,18 @@ class TeaGeometryTests(unittest.TestCase):
             self.assertLess(np.max(np.linalg.norm(visual - physical, axis=1)), 0.00023)
 
     def test_seeded_layouts_are_valid_and_reproducible(self):
+        positions = []
+        orders = set()
         for seed in range(100):
             spec = ScenarioSpecification.randomized(seed)
             self.assertEqual(spec, ScenarioSpecification.randomized(seed))
             spec.validate([-0.36, -0.5969, 0.338], [0.6096, 1.1938, 0.05])
+            positions.extend(spec.part_xy)
+            orders.add(spec.tea_order)
+        positions = np.asarray(positions)
+        self.assertGreater(np.ptp(positions[:, 0]), 0.12)
+        self.assertGreater(np.ptp(positions[:, 1]), 0.90)
+        self.assertEqual(len(orders), 6)
 
     def test_bad_layouts_fail(self):
         for data in (
@@ -56,6 +64,10 @@ class TeaGeometryTests(unittest.TestCase):
             ScenarioSpecification(organizer_xy=(1, 0)).validate(
                 [-0.36, -0.5969, 0.338], [0.6096, 1.1938, 0.05]
             )
+        with self.assertRaises(ValueError):
+            ScenarioSpecification(
+                part_xy=((-0.15, 0), (-0.16, -0.15), (-0.04, 0.38))
+            ).validate([-0.36, -0.5969, 0.338], [0.6096, 1.1938, 0.05])
 
 
 try:
@@ -115,6 +127,21 @@ class TeaOutcomeTests(unittest.TestCase):
         )
         self.place_all()
         self.assertTrue(self.scenario.outcome()["success"])
+
+    def test_policy_selects_cross_arm_relays_for_swapped_workspace_seed(self):
+        from scenarios.organizer.episode import PolicyOptions
+        from scenarios.tea_sorting.policy import TeaPolicy
+
+        self.scenario.close()
+        self.scenario = OrganizerScenario.build(
+            self.context, ScenarioSpecification.randomized(2)
+        )
+        policy = TeaPolicy(self.scenario, PolicyOptions(check_collisions=False))
+        policy.plan()
+        self.assertEqual(
+            policy.routes,
+            [("right", "left"), ("left", "right"), ("right",)],
+        )
 
 
 if __name__ == "__main__":

@@ -14,6 +14,14 @@ GRASP = np.array([0.0, 0.0, 0.052 - PACKET_SIZE[2] / 2])
 TEAS = ("rooibos", "chamomile", "earl_grey")
 COLORS = ((0.65, 0.075, 0.035), (0.85, 0.56, 0.025), (0.025, 0.13, 0.32))
 
+# A shared, fixture-assisted handoff point lets either arm fetch a packet and
+# either arm deliver it.  The sampling band is a conservative subset of the
+# measured union of the two OpenArm pickup workspaces, not three source slots.
+HANDOFF_XY = np.array([-0.150, 0.0])
+PACKET_WORKSPACE_X = (-0.200, -0.060)
+PACKET_WORKSPACE_Y = (-0.480, 0.480)
+PACKET_FOOTPRINT_HALF = np.array([0.037, 0.0095])
+
 
 def box_components():
     boxes = [((0, 0, BOX_SIZE[2] / 2), BOX_SIZE)]
@@ -113,12 +121,36 @@ class ScenarioSpecification:
     def randomized(cls, seed):
         rng = np.random.default_rng(seed)
         base = cls()
+        organizer = np.array(base.organizer_xy) + rng.uniform(-0.010, 0.010, 2)
+        occupied = [
+            (organizer, BOX_SIZE[:2] / 2),
+            (HANDOFF_XY, PACKET_FOOTPRINT_HALF),
+        ]
+        packets = []
+        for _ in range(3):
+            for _attempt in range(2048):
+                candidate = np.array(
+                    [
+                        rng.uniform(*PACKET_WORKSPACE_X),
+                        rng.uniform(*PACKET_WORKSPACE_Y),
+                    ]
+                )
+                if all(
+                    not np.all(
+                        np.abs(candidate - centre)
+                        < PACKET_FOOTPRINT_HALF + half + 0.012
+                    )
+                    for centre, half in occupied
+                ):
+                    packets.append(tuple(candidate))
+                    occupied.append((candidate, PACKET_FOOTPRINT_HALF))
+                    break
+            else:
+                raise RuntimeError("Could not sample separated tea packet positions")
         return cls(
-            tuple(np.array(base.organizer_xy) + rng.uniform(-0.010, 0.010, 2)),
-            tuple(
-                map(tuple, np.array(base.part_xy) + rng.uniform(-0.008, 0.008, (3, 2)))
-            ),
-            base.tea_order,
+            tuple(organizer),
+            tuple(packets),
+            tuple(int(i) for i in rng.permutation(3)),
             seed,
         )
 
@@ -126,8 +158,11 @@ class ScenarioSpecification:
         # Validate direct construction as well as JSON input.
         self.from_layout({k: v for k, v in asdict(self).items() if k != "seed"})
         footprints = [("tea box", np.array(self.organizer_xy), BOX_SIZE[:2] / 2)]
+        footprints.append(
+            ("transfer cradle", HANDOFF_XY, PACKET_FOOTPRINT_HALF)
+        )
         footprints += [
-            (f"packet {i}", np.array(xy), np.array([0.037, 0.0095]))
+            (f"packet {i}", np.array(xy), PACKET_FOOTPRINT_HALF)
             for i, xy in enumerate(self.part_xy)
         ]
         lower, upper = (
@@ -151,6 +186,11 @@ class ScenarioSpecification:
             "tea_classes": TEAS,
             "packet_size_m": PACKET_SIZE.tolist(),
             "packet_mass_kg": 0.004,
+            "packet_sampling_workspace_xy_m": {
+                "x": list(PACKET_WORKSPACE_X),
+                "y": list(PACKET_WORKSPACE_Y),
+            },
+            "transfer_cradle_xy_m": HANDOFF_XY.tolist(),
             "box_fixed": True,
             "physics": "rigid sealed packets; physical jaw contact; no bending or tearing; uncalibrated friction",
             "observation": "privileged actor poses and semantic tea class, not image recognition",

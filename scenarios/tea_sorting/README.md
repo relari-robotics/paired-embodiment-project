@@ -52,6 +52,28 @@ blender -b -P scenarios/tea_sorting/render_review.py -- \
   --engine CYCLES --samples 128 --width 1920 --height 1440
 ```
 
+The same physics recording can produce perfectly aligned robot-visible and
+robot-invisible variants. Render once normally, then repeat the identical
+camera, timing, resolution, and sampling arguments with `--hide-robot` and a
+different output directory:
+
+```bash
+blender -b -P scenarios/tea_sorting/render.py -- \
+  --recording scenarios/tea_sorting/exports/demo \
+  --output scenarios/tea_sorting/exports/visible \
+  --camera table --frame-index 2953 --samples 128
+
+blender -b -P scenarios/tea_sorting/render.py -- \
+  --recording scenarios/tea_sorting/exports/demo \
+  --output scenarios/tea_sorting/exports/robot_hidden \
+  --camera table --frame-index 2953 --samples 128 --hide-robot
+```
+
+Only Blender visibility changes: the robot remains present in the physics
+episode, the packet pose is identical, and actor-mounted camera transforms
+remain available. The invisible variant also omits robot shadows and
+reflections, which is normally preferable for clean training-data ablations.
+
 Visual assets include:
 
 - 8K photographed wood base color, roughness, and OpenGL normal maps from
@@ -77,21 +99,45 @@ mesh for contact. The wooden container has an 8 mm floor, 8 mm outer walls,
 grid is explicitly 1 mm: automatic mean-edge spacing was too coarse for these
 thin walls. Low 18 mm presentation cradles keep the starting sachets accessible.
 
-The motor policy reads each current packet pose and tea class, solves inverse
-kinematics, closes the jaws, checks actual lift, compensates the measured grasp
-offset, and releases over the corresponding box-relative compartment. Small
-jaw opening and settling checks replace the original block-release motion.
+The motor policy reads each current packet pose and tea class, selects an arm
+from actual reachability, solves inverse kinematics, closes the jaws, checks
+actual lift, compensates the measured grasp offset, and releases over the
+corresponding box-relative compartment. Small jaw opening and settling checks
+replace the original block-release motion.
+
+Every high-clearance approach, carry, and exit route is passed through the shared
+SQP TrajOpt implementation with continuously sampled joint-limit and obstacle
+clearance constraints. Cartesian continuation is retained for deliberate
+contact motion. If a straight Cartesian reference crosses an IK branch, a
+joint-space reference supplies TrajOpt with another homotopy. The unused arm
+is returned to and held at its authored parked pose. `--no-trajopt` disables
+this behavior only for diagnostics.
+
+Arm choice is no longer tied to packet index or a source lane. A direct
+single-arm transfer is preferred. If the arm that can pick a packet cannot
+reach its color compartment, it releases the packet into a shared presentation
+cradle at `[-0.15, 0.0] m`; the other arm then physically re-grasps it and
+finishes the sort. The center-color packet is scheduled last so it cannot
+obstruct the relay corridor behind the box. Both directions of the relay are
+supported without welds, attachments, or object teleportation.
 The full physical packet surface must be contained and nearly stationary;
 commanded targets are not counted as successful placement. Telemetry includes
 measured/commanded joints, packet transforms, total contact forces, and contact
 forces from each finger. There are no gripper attachments or object teleports.
 
-`--seed` independently shifts the box by up to ±10 mm per axis and each packet
-and its cradle by up to ±8 mm. Layout JSON accepts `organizer_xy`, `part_xy`, and
-an optional `tea_order` permutation of `[0, 1, 2]`. Targets follow the actual box
-pose. Off-table and overlapping layouts fail explicitly. This is bounded
-translation robustness, not a guarantee for arbitrary positions or rotations;
-the arm assignment assumes the three source regions shown in the default scene.
+`--seed` shifts the box by up to ±10 mm per axis, shuffles the tea identities,
+and independently samples packet/cradle positions throughout the conservative
+bimanual pickup workspace: X `[-0.20, -0.06] m`, Y `[-0.48, 0.48] m`. Samples
+are continuous and reject overlaps with the box, relay cradle, or another
+packet. This replaces the former ±8 mm source-lane jitter.
+
+Layout JSON accepts `organizer_xy`, `part_xy`, and an optional `tea_order`
+permutation of `[0, 1, 2]`. Explicit packet positions may be anywhere on the
+usable table; the reachability and TrajOpt pass determines whether that exact
+task is in the robot workspace and fails explicitly otherwise. Targets follow
+the actual box pose. Position generality remains bounded by reach, collision
+geometry, and the upright presentation cradles; arbitrary packet yaw or flat
+packets are not yet supported.
 
 Important limits: this is a privileged-state scripted demonstration policy, not
 a trained vision policy. The tea class comes from simulator metadata, not color
@@ -113,8 +159,10 @@ The second command runs full contact-physics episodes for the fixed layout,
 the explicitly shifted layout, and the requested seeds. It writes results as
 each case completes and exits nonzero if any fails. It is not an IK-only test.
 
-Verified locally on 2026-09-14: all 7 physics cases passed (fixed, shifted,
-seeds 0–4), along with all 13 tea/organizer unit tests and Ruff checks.
-Episodes took 55.6–60.1 simulated seconds. The local `exports/demo` bundle
-includes initial, detail, and overhead renders plus a texture-packed `.blend`.
-Exports are ignored by Git; rerun the commands above after a fresh checkout.
+Verified locally on 2026-09-14 after workspace-wide planning was added: fixed
+and broad seed 0 passed full physics in 60.1 simulated seconds; adversarial seed
+2 passed in 90.5 seconds while exercising both right-to-left and left-to-right
+physical relays. Seeds 0–9 passed reachability planning, and the tea/organizer
+unit tests and Ruff checks passed. The local `exports/demo` bundle includes
+initial, detail, and overhead renders plus a texture-packed `.blend`. Exports
+are ignored by Git; rerun the commands above after a fresh checkout.
