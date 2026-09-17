@@ -1,0 +1,23 @@
+{
+  "format": "superdex-teleop-mapping-v1",
+  "max_age_s": 0.1,
+  "reset_age_s": 0.5,
+  "max_arm_joint_speed_rad_s": 1.5,
+  "max_gripper_joint_speed_rad_s": 2.0,
+  "arms": {
+    "right": {
+      "source_min_desk_m": [-0.25, -0.45, 0.02],
+      "source_max_desk_m": [0.25, 0.0, 0.35],
+      "target_min_world_m": [-0.16, -0.38, 0.41],
+      "target_max_world_m": [0.18, -0.02, 0.70],
+      "palm_to_gripper_quaternion_xyzw": [-0.50608248, -0.52353223, 0.47585860, -0.49330835]
+    },
+    "left": {
+      "source_min_desk_m": [-0.25, 0.0, 0.02],
+      "source_max_desk_m": [0.25, 0.45, 0.35],
+      "target_min_world_m": [-0.16, 0.02, 0.41],
+      "target_max_world_m": [0.18, 0.38, 0.70],
+      "palm_to_gripper_quaternion_xyzw": [-0.59019101, -0.52060448, 0.46966361, -0.40007704]
+    }
+  }
+}

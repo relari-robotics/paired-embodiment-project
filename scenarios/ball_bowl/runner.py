@@ -51,7 +51,11 @@ if __package__:
 else:
     from scenarios.ball_bowl import scenario as task
     from scenarios.ball_bowl.cameras import camera_payloads
-    from scenarios.ball_bowl.episode import EpisodePolicy, PolicyOptions, load_policy_class
+    from scenarios.ball_bowl.episode import (
+        EpisodePolicy,
+        PolicyOptions,
+        load_policy_class,
+    )
 
 NP_REAL = np.float64 if physics.uses_double_precision() else np.float32
 
@@ -79,6 +83,7 @@ class EpisodeRunner:
         allow_failed_grasp: bool = False,
         frame_callback=None,
         step_callback=None,
+        phase_sequence: tuple[str, ...] | None = None,
     ) -> None:
         self.scenario = scenario
         self.scene = scenario.scene
@@ -97,7 +102,11 @@ class EpisodeRunner:
             step_callback=step_callback,
         )
         self.ee = self.info.link_actor(self.scene, f"/{self.info.end_effector_link}")
-        self.phases = PhaseLog(self.info.embodiment_id, self._phase_sample)
+        self.phases = PhaseLog(
+            self.info.embodiment_id,
+            self._phase_sample,
+            phase_sequence or PhaseLog.phase_sequence,
+        )
 
     # -- state queries ----------------------------------------------------
 
@@ -376,6 +385,28 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--teleop",
+        action="store_true",
+        help="drive both OpenArm arms from live Kyber MediaPipe packets",
+    )
+    parser.add_argument(
+        "--teleop-endpoint",
+        default="127.0.0.1:7447",
+        help="UDP bind endpoint for --teleop (default: 127.0.0.1:7447)",
+    )
+    parser.add_argument(
+        "--teleop-mapping",
+        type=Path,
+        default=Path(__file__).resolve().parent / "teleop_mapping.json",
+        help="per-arm desk-to-workspace mapping JSON",
+    )
+    parser.add_argument(
+        "--teleop-duration",
+        type=float,
+        default=0.0,
+        help="teleoperation duration in seconds; zero runs until stopped",
+    )
+    parser.add_argument(
         "--snapshot",
         nargs="?",
         const=str(Path(__file__).resolve().parent / "exports" / "snapshot.png"),
@@ -513,7 +544,18 @@ def build_and_plan(
     """Build the scene for the selected embodiment and run its planner."""
 
     def planner(scenario: task.BallBowlScenario) -> EpisodePolicy:
-        policy = make_policy(scenario, options)
+        if args.teleop:
+            from scenarios.ball_bowl.teleop_policy import TeleopPolicy
+
+            policy: EpisodePolicy = TeleopPolicy(
+                scenario,
+                options,
+                endpoint=args.teleop_endpoint,
+                mapping_path=args.teleop_mapping,
+                duration_s=args.teleop_duration,
+            )
+        else:
+            policy = make_policy(scenario, options)
         policy.plan()
         return policy
 
@@ -676,10 +718,11 @@ def main() -> None:
             viewer,
             # Interactive playback should be watchable. Headless/export modes
             # remain unthrottled, while either live viewer tracks wall time.
-            real_time=args.debugger or viewer is not None,
+            real_time=args.teleop or args.debugger or viewer is not None,
             allow_failed_grasp=args.allow_failed_grasp,
             frame_callback=recorder.capture if recorder is not None else None,
             step_callback=telemetry.record_sample if telemetry is not None else None,
+            phase_sequence=getattr(policy, "phase_sequence", None),
         )
         home_pose = policy.home_pose()
         # Every embodiment starts parked exactly where its policy says home is.

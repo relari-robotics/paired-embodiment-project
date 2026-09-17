@@ -439,13 +439,15 @@ def create_workcell(
 
 
 class RightArmKinematics(OpenArmKinematics):
-    """Scenario adapter supplying ball-and-bowl obstacles to OpenArm IK."""
+    """Scenario adapter supplying ball-and-bowl obstacles to either OpenArm side."""
 
     def __init__(
         self,
         context: robotics.RoboticsContext,
         reference: BotInfo,
         specification: ScenarioSpecification | None = None,
+        *,
+        side: str = "right",
     ) -> None:
         specification = specification or ScenarioSpecification.fixed()
         super().__init__(
@@ -453,6 +455,7 @@ class RightArmKinematics(OpenArmKinematics):
             reference,
             contact_params,
             BallBowlCollisionModel(specification, DESK_MIN, DESK_SIZE),
+            side=side,
         )
 
 
@@ -595,6 +598,23 @@ EMBODIMENTS: dict[str, EmbodimentSpec] = {
         kinematics=_openarm_kinematics,
         policy="scenarios.ball_bowl.openarm_policy:OpenArmPolicy",
     ),
+    # The default: both arms motor-controlled.  The scripted reference policy
+    # drives the right arm and leaves the left parked; replayed trajectory
+    # files may command either or both arms.
+    "openarm_v2_bimanual": EmbodimentSpec(
+        embodiment_id="openarm_v2_bimanual",
+        scene_name="OpenArm v2 both arms: randomized ball into bowl",
+        render_manifest=(
+            "/scenarios/ball_bowl/studio/scene/openarm_ball_bowl_studio.mochi_scene"
+        ),
+        solver_max_iter=8,
+        build=lambda scene, context: build_openarm_v2(
+            scene, context, contact_params, sides=("right", "left")
+        ),
+        destroy=destroy_openarm_v2,
+        kinematics=_openarm_kinematics,
+        policy="scenarios.ball_bowl.openarm_policy:OpenArmPolicy",
+    ),
     "human_right_hand": EmbodimentSpec(
         embodiment_id="human_right_hand",
         scene_name="Human right hand: randomized ball into bowl",
@@ -602,13 +622,15 @@ EMBODIMENTS: dict[str, EmbodimentSpec] = {
             "/scenarios/ball_bowl/studio/human_scene/human_ball_bowl_studio.mochi_scene"
         ),
         solver_max_iter=10,
-        build=lambda scene, context: build_human_right_arm(scene, context, contact_params),
+        build=lambda scene, context: build_human_right_arm(
+            scene, context, contact_params
+        ),
         destroy=destroy_human_right_arm,
         kinematics=_human_kinematics,
         policy="scenarios.ball_bowl.human_project:HumanPolicy",
     ),
 }
-DEFAULT_EMBODIMENT = "openarm_v2"
+DEFAULT_EMBODIMENT = "openarm_v2_bimanual"
 
 
 @dataclass
@@ -621,6 +643,7 @@ class BallBowlScenario:
     workcell: Workcell
     kinematics: ArmKinematics
     embodiment: EmbodimentSpec
+    left_kinematics: ArmKinematics | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -651,9 +674,12 @@ class BallBowlScenario:
         scene.set_solver_params(solver)
         info: EmbodimentModel | None = None
         kinematics: ArmKinematics | None = None
+        left_kinematics: ArmKinematics | None = None
         try:
             info = embodiment.build(scene, context)
-            ground_shape = physics.create_plane_shape(normal=[0.0, 0.0, 1.0], distance=0.0)
+            ground_shape = physics.create_plane_shape(
+                normal=[0.0, 0.0, 1.0], distance=0.0
+            )
             scene.create_rigid_actor(
                 name="ground",
                 layer="ground",
@@ -664,8 +690,22 @@ class BallBowlScenario:
             physics.release_shape(ground_shape)
             workcell = create_workcell(scene, specification)
             kinematics = embodiment.kinematics(context, info, specification)
-            return cls(scene, specification, info, workcell, kinematics, embodiment)
+            if "left_arm" in info.dof_groups:
+                left_kinematics = RightArmKinematics(
+                    context, info, specification, side="left"
+                )
+            return cls(
+                scene,
+                specification,
+                info,
+                workcell,
+                kinematics,
+                embodiment,
+                left_kinematics,
+            )
         except Exception:
+            if left_kinematics is not None:
+                left_kinematics.close()
             if kinematics is not None:
                 kinematics.close()
             if info is not None:
@@ -716,6 +756,8 @@ class BallBowlScenario:
         """Release scenario-owned planning and embodiment resources once."""
         if self._closed:
             return
+        if self.left_kinematics is not None:
+            self.left_kinematics.close()
         self.kinematics.close()
         self.embodiment.destroy(self.scene, self.bot_info)
         physics.destroy_scene(self.scene)

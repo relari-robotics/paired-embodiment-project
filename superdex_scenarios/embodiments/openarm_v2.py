@@ -18,6 +18,7 @@ from superdex import physics, robotics
 from superdex.physics.paths import resolve_asset
 from superdex.physics.utils import render_model_registry
 
+from ..planning.pose_ik import PoseIKOptimizer
 from .base import CameraSpec, ContactGroup, EmbodimentModel, JointTrackingSpec
 
 ROBOT_ASSET = "bots/arm_hand_combos/openarm_v20/openarm_v20.superdex_bot"
@@ -569,6 +570,58 @@ class OpenArmKinematics:
             seed,
             position_tolerance=position_tolerance,
             rotation_weight=rotation_weight,
+        )
+
+    def solve_pose_optimized(
+        self,
+        position: npt.ArrayLike,
+        quaternion_xyzw: npt.ArrayLike,
+        seed: npt.ArrayLike,
+    ) -> npt.NDArray[np.float64]:
+        """Solve one pose with bounded nonlinear SQP, warm-started from ``seed``."""
+
+        seed_arm = np.asarray(seed, dtype=float).copy()
+        side_mask = np.isin(self.info.arm_dofs, self.side_arm_dofs)
+        lower = self.info.arm_limits[side_mask, 0] + 1.0e-4
+        upper = self.info.arm_limits[side_mask, 1] - 1.0e-4
+
+        def full_pose(side_pose: npt.ArrayLike) -> npt.NDArray[np.float64]:
+            pose = seed_arm.copy()
+            pose[side_mask] = np.asarray(side_pose, dtype=float)
+            return pose
+
+        optimizer = PoseIKOptimizer(
+            lambda side_pose: self.grasp_point_pose(full_pose(side_pose)),
+            lambda side_pose: self.collision_cost(full_pose(side_pose))[1],
+        )
+        result = optimizer.solve(
+            position,
+            quaternion_xyzw,
+            seed_arm[side_mask],
+            lower,
+            upper,
+        )
+        arm = full_pose(result.configuration)
+        achieved_position, _ = self.grasp_point_pose(arm)
+        error = float(
+            np.linalg.norm(achieved_position - np.asarray(position, dtype=float))
+        )
+        _, clearance = self.collision_cost(arm)
+        if error > optimizer.settings.position_tolerance_m or clearance < 0.0:
+            raise RuntimeError(
+                f"optimized IK failed: position error={error:.4f} m, "
+                f"clearance={clearance:+.4f} m, backend={result.backend}, "
+                f"status={result.message}"
+            )
+        return arm
+
+    def solve_optimized(
+        self, target: npt.ArrayLike, seed: npt.ArrayLike
+    ) -> npt.NDArray[np.float64]:
+        """Bounded SQP position IK using the authored level orientation."""
+
+        return self.solve_pose_optimized(
+            target, _quaternion_xyzw(self.level_rotation), seed
         )
 
     # -- collision proxies --------------------------------------------------
