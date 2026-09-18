@@ -4,6 +4,12 @@
   "reset_age_s": 0.5,
   "max_arm_joint_speed_rad_s": 1.5,
   "max_gripper_joint_speed_rad_s": 2.0,
+  "target_filter_time_constant_s": 0.08,
+  "joint_tracking_time_constant_s": 0.12,
+  "max_arm_joint_acceleration_rad_s2": 8.0,
+  "max_gripper_joint_acceleration_rad_s2": 16.0,
+  "ik_max_iterations": 5,
+  "orientation_mode": "top-down",
   "arms": {
     "right": {
       "source_min_desk_m": [-0.25, -0.45, 0.02],

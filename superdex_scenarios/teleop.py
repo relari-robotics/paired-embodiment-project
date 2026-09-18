@@ -115,6 +115,12 @@ class TeleopMapping:
     reset_age_s: float
     max_arm_joint_speed_rad_s: float
     max_gripper_joint_speed_rad_s: float
+    ik_max_iterations: int = 14
+    orientation_mode: str = "adaptive"
+    target_filter_time_constant_s: float = 0.08
+    joint_tracking_time_constant_s: float = 0.12
+    max_arm_joint_acceleration_rad_s2: float = 8.0
+    max_gripper_joint_acceleration_rad_s2: float = 16.0
 
     @classmethod
     def load(cls, path: Path) -> TeleopMapping:
@@ -135,7 +141,27 @@ class TeleopMapping:
             max_gripper_joint_speed_rad_s=float(
                 payload.get("max_gripper_joint_speed_rad_s", 2.0)
             ),
+            ik_max_iterations=int(payload.get("ik_max_iterations", 14)),
+            orientation_mode=str(payload.get("orientation_mode", "adaptive")),
+            target_filter_time_constant_s=float(
+                payload.get("target_filter_time_constant_s", 0.08)
+            ),
+            joint_tracking_time_constant_s=float(
+                payload.get("joint_tracking_time_constant_s", 0.12)
+            ),
+            max_arm_joint_acceleration_rad_s2=float(
+                payload.get("max_arm_joint_acceleration_rad_s2", 8.0)
+            ),
+            max_gripper_joint_acceleration_rad_s2=float(
+                payload.get("max_gripper_joint_acceleration_rad_s2", 16.0)
+            ),
         )
+        if result.ik_max_iterations < 1:
+            raise ValueError("teleop ik_max_iterations must be at least 1")
+        if result.orientation_mode not in {"adaptive", "top-down"}:
+            raise ValueError(
+                "teleop orientation_mode must be 'adaptive' or 'top-down'"
+            )
         if not 0 < result.max_age_s < result.reset_age_s:
             raise ValueError("teleop reset age must exceed positive maximum packet age")
         if (
@@ -143,6 +169,18 @@ class TeleopMapping:
             or result.max_gripper_joint_speed_rad_s <= 0
         ):
             raise ValueError("teleop joint speed limits must be positive")
+        if (
+            result.target_filter_time_constant_s <= 0
+            or result.joint_tracking_time_constant_s <= 0
+        ):
+            raise ValueError("teleop smoothing time constants must be positive")
+        if (
+            result.max_arm_joint_acceleration_rad_s2 <= 0
+            or result.max_gripper_joint_acceleration_rad_s2 <= 0
+        ):
+            raise ValueError(
+                "teleop joint acceleration limits must be positive"
+            )
         return result
 
     def map_hand(self, hand: dict) -> MappedHand:
