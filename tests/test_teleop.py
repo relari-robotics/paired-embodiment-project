@@ -11,6 +11,7 @@ import pytest
 from scenarios.ball_bowl.teleop_policy import (
     TeleopPolicy,
     _LatestPacketIK,
+    table_parallel_quaternion_xyzw,
     top_down_quaternion_xyzw,
 )
 from superdex_scenarios.embodiments.openarm_v2 import finger_joint_from_aperture
@@ -158,6 +159,47 @@ def test_policy_top_down_mode_does_not_switch_orientation_fallbacks():
     assert accepted == {"top-down": 1}
 
 
+def test_policy_table_parallel_mode_does_not_switch_orientation_fallbacks():
+    from scipy.spatial.transform import Rotation
+
+    calls = []
+
+    class Kinematics:
+        def solve_pose_optimized(self, position, quaternion, seed, *, max_iterations=None):
+            calls.append((tuple(np.round(quaternion, 6)), max_iterations))
+            return np.array([0.1, 0.2])
+
+        def collision_cost(self, candidate):
+            return 0.0, 0.1
+
+    quaternion = Rotation.from_euler("zyx", [35, 20, -10], degrees=True).as_quat()
+    mapped = SimpleNamespace(
+        position_world_m=np.array([0.1, -0.1, 0.5]),
+        quaternion_world_xyzw=quaternion,
+        aperture=0.4,
+    )
+    policy = TeleopPolicy.__new__(TeleopPolicy)
+    policy.info = SimpleNamespace(
+        arm_dofs=np.array([0, 1]),
+        dof_groups={"right_gripper": np.array([2, 3])},
+    )
+    policy.mapping = SimpleNamespace(
+        map_hand=lambda hand: mapped,
+        ik_max_iterations=5,
+        orientation_mode="table-parallel",
+    )
+    policy.kinematics = {"right": Kinematics()}
+    desired = np.zeros(4)
+    accepted = {}
+
+    assert policy._solve_packet(
+        {"hands": [{"side": "right"}]}, desired, {"right": -np.inf}, accepted
+    ) == 1
+    expected = tuple(np.round(table_parallel_quaternion_xyzw(quaternion), 6))
+    assert calls == [(expected, 5)]
+    assert accepted == {"table-parallel": 1}
+
+
 def test_endpoint_validation():
     assert parse_endpoint("127.0.0.1:7447") == ("127.0.0.1", 7447)
     with pytest.raises(ValueError, match="HOST:PORT"):
@@ -228,13 +270,51 @@ def test_top_down_quaternion_points_fingers_down_and_keeps_jaw_yaw():
         np.testing.assert_allclose(result[:, 1], [0.0, sign, 0.0], atol=1e-12)
 
 
+def test_table_parallel_quaternion_keeps_gripper_level_and_human_heading():
+    from scipy.spatial.transform import Rotation
+
+    mapped = Rotation.from_euler("zyx", [35, 25, -15], degrees=True).as_matrix()
+    result = Rotation.from_quat(
+        table_parallel_quaternion_xyzw(Rotation.from_matrix(mapped).as_quat())
+    ).as_matrix()
+
+    # Local Y is the jaw axis and local -Z is finger-forward. Both are
+    # horizontal, so the whole finger/jaw plane is parallel to the desk.
+    assert result[2, 0] == pytest.approx(1.0)
+    assert result[2, 1] == pytest.approx(0.0, abs=1e-12)
+    assert result[2, 2] == pytest.approx(0.0, abs=1e-12)
+    mapped_forward = -mapped[:, 2]
+    mapped_forward[2] = 0.0
+    mapped_forward /= np.linalg.norm(mapped_forward)
+    np.testing.assert_allclose(-result[:, 2], mapped_forward, atol=1e-12)
+    assert np.linalg.det(result) == pytest.approx(1.0)
+
+    # If finger-forward is vertical, the horizontal jaw axis provides the
+    # otherwise undefined tabletop heading.
+    singular = Rotation.from_quat(
+        table_parallel_quaternion_xyzw([0.0, 0.0, 0.0, 1.0])
+    ).as_matrix()
+    np.testing.assert_allclose(-singular[:, 2], [1.0, 0.0, 0.0], atol=1e-12)
+    assert singular[2, 0] == pytest.approx(1.0)
+
+    # Palm-normal noise must never select the equivalent upside-down frame;
+    # that choice would introduce an abrupt 180-degree wrist flip.
+    palm_down = mapped.copy()
+    palm_down[:, 0] *= -1.0
+    palm_down[:, 1] *= -1.0
+    stable = Rotation.from_quat(
+        table_parallel_quaternion_xyzw(Rotation.from_matrix(palm_down).as_quat())
+    ).as_matrix()
+    assert stable[2, 0] == pytest.approx(1.0)
+
+
 def test_mapping_reads_ik_iteration_budget(tmp_path):
     from superdex_scenarios.teleop import TeleopMapping
 
     payload = {
         "format": "superdex-teleop-mapping-v1",
         "ik_max_iterations": 6,
-        "orientation_mode": "top-down",
+        "orientation_mode": "table-parallel",
         "target_filter_time_constant_s": 0.06,
         "joint_tracking_time_constant_s": 0.10,
         "max_arm_joint_acceleration_rad_s2": 7.0,
@@ -254,7 +334,7 @@ def test_mapping_reads_ik_iteration_budget(tmp_path):
     path.write_text(json.dumps(payload))
     mapping = TeleopMapping.load(path)
     assert mapping.ik_max_iterations == 6
-    assert mapping.orientation_mode == "top-down"
+    assert mapping.orientation_mode == "table-parallel"
     assert mapping.target_filter_time_constant_s == pytest.approx(0.06)
     assert mapping.joint_tracking_time_constant_s == pytest.approx(0.10)
     assert mapping.max_arm_joint_acceleration_rad_s2 == pytest.approx(7.0)
@@ -268,7 +348,7 @@ def test_mapping_reads_ik_iteration_budget(tmp_path):
     path.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match="orientation_mode"):
         TeleopMapping.load(path)
-    payload["orientation_mode"] = "top-down"
+    payload["orientation_mode"] = "table-parallel"
     payload["target_filter_time_constant_s"] = 0
     path.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match="smoothing time constants"):

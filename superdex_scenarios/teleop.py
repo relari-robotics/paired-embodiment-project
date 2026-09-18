@@ -158,9 +158,9 @@ class TeleopMapping:
         )
         if result.ik_max_iterations < 1:
             raise ValueError("teleop ik_max_iterations must be at least 1")
-        if result.orientation_mode not in {"adaptive", "top-down"}:
+        if result.orientation_mode not in {"adaptive", "table-parallel", "top-down"}:
             raise ValueError(
-                "teleop orientation_mode must be 'adaptive' or 'top-down'"
+                "teleop orientation_mode must be 'adaptive', 'table-parallel', or 'top-down'"
             )
         if not 0 < result.max_age_s < result.reset_age_s:
             raise ValueError("teleop reset age must exceed positive maximum packet age")

@@ -46,6 +46,43 @@ def top_down_quaternion_xyzw(
     return -quaternion if quaternion[3] < 0 else quaternion
 
 
+def table_parallel_quaternion_xyzw(
+    mapped_quaternion_xyzw: npt.ArrayLike,
+) -> npt.NDArray[np.float64]:
+    """Keep the gripper plane parallel to the desk and preserve hand heading.
+
+    OpenArm local ``-Z`` is finger-forward and local ``Y`` is the jaw axis, so
+    both must lie in the horizontal plane. The demonstrated finger-forward
+    direction supplies yaw while world-up supplies a fixed surface normal,
+    preventing 180-degree wrist flips when the observed palm normal is noisy.
+    """
+
+    mapped = Rotation.from_quat(
+        np.asarray(mapped_quaternion_xyzw, dtype=float)
+    ).as_matrix()
+    up = np.array([0.0, 0.0, 1.0])
+    forward = -mapped[:, 2]
+    forward -= float(np.dot(forward, up)) * up
+    norm = float(np.linalg.norm(forward))
+    if norm < 1e-6:
+        # A nearly vertical finger direction has no tabletop heading. The jaw
+        # axis remains orthogonal to it, so it supplies a stable horizontal
+        # heading for this singular case.
+        jaw = mapped[:, 1] - float(np.dot(mapped[:, 1], up)) * up
+        jaw_norm = float(np.linalg.norm(jaw))
+        if jaw_norm < 1e-6:
+            raise ValueError("mapped gripper has no horizontal heading")
+        forward = np.cross(jaw / jaw_norm, up)
+    else:
+        forward /= norm
+    local_x = up
+    local_z = -forward
+    local_y = np.cross(local_z, local_x)
+    rotation = np.column_stack((local_x, local_y, local_z))
+    quaternion = Rotation.from_matrix(rotation).as_quat()
+    return -quaternion if quaternion[3] < 0 else quaternion
+
+
 class _LatestPacketIK:
     """Solve only the newest pending packet without blocking physics stepping."""
 
@@ -119,9 +156,10 @@ class _LatestPacketIK:
 class TeleopPolicy:
     """Apply fresh absolute bimanual hand targets while holding on invalid input.
 
-    Orientation handling is selected by the mapping. Fixed top-down mode keeps
-    the demonstrated jaw yaw without switching orientation families; adaptive
-    mode retains the mapped/top-down/level fallback chain for comparison.
+    Orientation handling is selected by the mapping. Fixed table-parallel mode
+    keeps the demonstrated finger heading while holding the gripper plane
+    level; adaptive mode retains the mapped/top-down/level fallback chain for
+    comparison.
     """
 
     phase_sequence = ("teleop",)
@@ -167,7 +205,14 @@ class TeleopPolicy:
     def preshape_pose(self) -> npt.NDArray[np.float64]:
         return self.home_pose()
 
-    ATTEMPT_KINDS = ("mapped", "top-down", "level", "top-down/home")
+    ATTEMPT_KINDS = (
+        "mapped",
+        "table-parallel",
+        "top-down",
+        "level",
+        "table-parallel/home",
+        "top-down/home",
+    )
 
     def _home_seed(self, side: str, arm_pose: npt.NDArray[np.float64]):
         home = getattr(self.info, "default_pose", None)
@@ -183,16 +228,26 @@ class TeleopPolicy:
     ) -> tuple[str, npt.NDArray[np.float64]]:
         iterations = getattr(self.mapping, "ik_max_iterations", None)
         top_down = top_down_quaternion_xyzw(mapped.quaternion_world_xyzw, side)
+        table_parallel = table_parallel_quaternion_xyzw(
+            mapped.quaternion_world_xyzw
+        )
         orientation_mode = getattr(self.mapping, "orientation_mode", "adaptive")
         errors = []
-        attempts = (
-            [("top-down", top_down, arm_pose)]
-            if orientation_mode == "top-down"
-            else [
+        if orientation_mode == "top-down":
+            attempts = [("top-down", top_down, arm_pose)]
+            home_kind = "top-down/home"
+            home_orientation = top_down
+        elif orientation_mode == "table-parallel":
+            attempts = [("table-parallel", table_parallel, arm_pose)]
+            home_kind = "table-parallel/home"
+            home_orientation = table_parallel
+        else:
+            attempts = [
                 ("mapped", mapped.quaternion_world_xyzw, arm_pose),
                 ("top-down", top_down, arm_pose),
             ]
-        )
+            home_kind = "top-down/home"
+            home_orientation = top_down
         for kind, quaternion, seed in attempts:
             try:
                 return kind, kinematics.solve_pose_optimized(
@@ -214,15 +269,15 @@ class TeleopPolicy:
         if home_seed is not None:
             try:
                 # The home seed is far from the target, so the last resort gets
-                # twice the warm-start budget.
-                return "top-down/home", kinematics.solve_pose_optimized(
+                # twice the warm-start budget without changing orientation.
+                return home_kind, kinematics.solve_pose_optimized(
                     mapped.position_world_m,
-                    top_down,
+                    home_orientation,
                     home_seed,
                     max_iterations=None if iterations is None else 2 * iterations,
                 )
             except (RuntimeError, ValueError) as error:
-                errors.append(f"top-down/home: {error}")
+                errors.append(f"{home_kind}: {error}")
         raise RuntimeError("; ".join(errors))
 
     def _solve_packet(
@@ -423,4 +478,8 @@ class TeleopPolicy:
         return True
 
 
-__all__ = ["TeleopPolicy", "top_down_quaternion_xyzw"]
+__all__ = [
+    "TeleopPolicy",
+    "table_parallel_quaternion_xyzw",
+    "top_down_quaternion_xyzw",
+]
