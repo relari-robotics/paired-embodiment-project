@@ -57,6 +57,7 @@ from superdex_scenarios.embodiments.openarm_v2 import (
     OpenArmKinematics,
     build_openarm_v2,
     destroy_openarm_v2,
+    freeze_other_arms,
 )
 from superdex_scenarios.planning import TrajOptTrajectoryOptimizer
 
@@ -82,10 +83,11 @@ PLATE_XY = np.array([-0.05, 0.0])
 PLATE_X_RANGE = (-0.080, -0.030)
 PLATE_Y_RANGE = (-0.025, 0.020)
 
-# Sponge: a neo-Hookean tetrahedral block.  X is its length, Y its width (the
+# Sponge: a neo-Hookean tetrahedral block sized like the recorded sponge
+# (measured from the demonstration depth).  X is its length, Y its width (the
 # gripper's jaw axis), Z its height.  Young's modulus is randomized over a soft
-# cellulose range; density gives about 30 g.
-SPONGE_SIZE = np.array([0.10, 0.065, 0.045])
+# cellulose range; density gives about 35 g.
+SPONGE_SIZE = np.array([0.11, 0.08, 0.04])
 SPONGE_CELL = 0.01
 SPONGE_YOUNGS_MODULUS = 8.0e3
 SPONGE_YOUNGS_MODULUS_RANGE = (5.0e3, 1.5e4)
@@ -160,6 +162,46 @@ class ScenarioSpecification:
             sponge_color=SPONGE_COLORS[0],
             sponge_xy=(float(SPONGE_XY[0]), float(SPONGE_XY[1])),
             plate_xy=(float(PLATE_XY[0]), float(PLATE_XY[1])),
+        )
+
+    @classmethod
+    def from_layout(cls, layout: dict[str, Any]) -> ScenarioSpecification:
+        """Fixed scenario with values overridden by a layout file.
+
+        Keys: ``sponge_xy``, ``plate_xy`` (metres, world XY on the desk),
+        ``sponge_youngs_modulus_pa``, and ``sponge_color`` (a ``SPONGE_COLORS``
+        name).  Unknown keys are rejected.
+        """
+        known = {"sponge_xy", "plate_xy", "sponge_youngs_modulus_pa", "sponge_color"}
+        unknown = sorted(set(layout) - known - {"comment", "source"})
+        if unknown:
+            raise ValueError(f"Unknown sponge_plate layout keys: {unknown}; expected {sorted(known)}.")
+        base = cls.fixed()
+
+        def xy(key: str, default: tuple[float, float]) -> tuple[float, float]:
+            value = np.asarray(layout.get(key, default), dtype=float).reshape(-1)
+            if value.shape != (2,):
+                raise ValueError(f"{key} must be [x, y] in metres.")
+            return (float(value[0]), float(value[1]))
+
+        color = base.sponge_color
+        if "sponge_color" in layout:
+            matches = [c for c in SPONGE_COLORS if c.name == layout["sponge_color"]]
+            if not matches:
+                raise ValueError(
+                    f"Unknown sponge_color {layout['sponge_color']!r}; expected one of "
+                    f"{[c.name for c in SPONGE_COLORS]}."
+                )
+            color = matches[0]
+        return cls(
+            seed=None,
+            sample_attempt=1,
+            sponge_youngs_modulus_pa=float(
+                layout.get("sponge_youngs_modulus_pa", base.sponge_youngs_modulus_pa)
+            ),
+            sponge_color=color,
+            sponge_xy=xy("sponge_xy", base.sponge_xy),
+            plate_xy=xy("plate_xy", base.plate_xy),
         )
 
     # -- plate geometry (world) -------------------------------------------
@@ -607,9 +649,18 @@ def plan_motion(
         place_to_retreat,
         retreat_to_home,
     )
+    def frozen(motion: PlannedMotion) -> PlannedMotion:
+        for name in vars(motion):
+            value = getattr(motion, name)
+            if isinstance(value, list):
+                setattr(motion, name, [freeze_other_arms(v, reference) for v in value])
+            else:
+                setattr(motion, name, freeze_other_arms(value, reference))
+        return motion
+
     if not optimize_trajectory:
         print("Trajectory optimization disabled: using direct Cartesian references.")
-        return motion
+        return frozen(motion)
 
     print("TrajOpt-style collision-aware optimization of the free-space segments:")
     optimizer = TrajOptTrajectoryOptimizer(kinematics)
@@ -619,7 +670,7 @@ def plan_motion(
         lift_off_to_place_safe, max_iterations=28
     )
     motion.retreat_to_home = optimizer.optimize(retreat_to_home, max_iterations=28)
-    return motion
+    return frozen(motion)
 
 
 # -- embodiment registry ----------------------------------------------------
@@ -661,8 +712,22 @@ EMBODIMENTS: dict[str, EmbodimentSpec] = {
         kinematics=_openarm_kinematics,
         policy="scenarios.sponge_plate.openarm_policy:OpenArmPolicy",
     ),
+    # The default: both arms motor-controlled.  The scripted reference policy
+    # drives the right arm and leaves the left parked.
+    "openarm_v2_bimanual": EmbodimentSpec(
+        embodiment_id="openarm_v2_bimanual",
+        scene_name="OpenArm v2 both arms: sponge wipes plate",
+        render_manifest="",
+        solver_max_iter=8,
+        build=lambda scene, context: build_openarm_v2(
+            scene, context, contact_params, sides=("right", "left")
+        ),
+        destroy=destroy_openarm_v2,
+        kinematics=_openarm_kinematics,
+        policy="scenarios.sponge_plate.openarm_policy:OpenArmPolicy",
+    ),
 }
-DEFAULT_EMBODIMENT = "openarm_v2"
+DEFAULT_EMBODIMENT = "openarm_v2_bimanual"
 
 
 @dataclass

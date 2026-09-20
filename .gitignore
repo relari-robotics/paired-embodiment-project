@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 node_modules/
 exports/
+exports_dev/
 .DS_Store
 .polyscope.ini
 

@@ -108,7 +108,7 @@ is used only by this renderer.
 | --- | --- |
 | Desk | 47 × 24 inches; the 47-inch edge runs left-to-right facing the robot |
 | Plate | YCB object 029 scan, solidified at load time (see `plate.py` and `assets/ycb_029_plate/README.md`); static, ceramic friction 0.42 |
-| Sponge | 10 × 6.5 × 4.5 cm neo-Hookean tetrahedral block (Kuhn-subdivided grid of about 1 cm, 385 nodes, 1 440 tets), Poisson 0.30, density 100 kg/m³, friction 0.85 |
+| Sponge | 11 × 8 × 4 cm neo-Hookean tetrahedral block sized like the recorded sponge (Kuhn-subdivided grid of about 1 cm), Poisson 0.30, density 100 kg/m³, friction 0.85 |
 
 A scanned plate is a shell a few millimetres thick; a soft body pressed onto it
 tunnels through. `solidify_plate` samples the scan's top surface on a 3 mm grid

@@ -18,7 +18,7 @@ from superdex import physics, robotics
 from superdex.physics.paths import resolve_asset
 from superdex.physics.utils import render_model_registry
 
-from ..planning.pose_ik import PoseIKOptimizer
+from ..planning.pose_ik import PoseIKOptimizer, PoseIKSettings
 from .base import CameraSpec, ContactGroup, EmbodimentModel, JointTrackingSpec
 
 ROBOT_ASSET = "bots/arm_hand_combos/openarm_v20/openarm_v20.superdex_bot"
@@ -280,7 +280,7 @@ def build_openarm_v2(
         grasp_point_local=GRASP_POINT_EE.copy(),
         # Named poses move the right gripper; on a bimanual build the left
         # gripper stays parked so single-arm policies leave it alone.  Policies
-        # that drive both grippers pass explicit vectors (see move_bowl_ball).
+        # that drive both grippers pass explicit vectors (see ball_bowl's bimanual_policy).
         hand_poses={
             "home": fingers(-RIGHT_FINGERS_HOME),
             "open": fingers(-RIGHT_FINGERS_OPEN, left_magnitude=-RIGHT_FINGERS_HOME),
@@ -577,8 +577,16 @@ class OpenArmKinematics:
         position: npt.ArrayLike,
         quaternion_xyzw: npt.ArrayLike,
         seed: npt.ArrayLike,
+        *,
+        max_iterations: int | None = None,
+        position_tolerance_m: float | None = None,
     ) -> npt.NDArray[np.float64]:
-        """Solve one pose with bounded nonlinear SQP, warm-started from ``seed``."""
+        """Solve one pose with bounded nonlinear SQP, warm-started from ``seed``.
+
+        ``max_iterations`` and ``position_tolerance_m`` override the default
+        SQP settings. Live teleoperation uses a small iteration budget because
+        every packet is warm-started from the previous frame.
+        """
 
         seed_arm = np.asarray(seed, dtype=float).copy()
         side_mask = np.isin(self.info.arm_dofs, self.side_arm_dofs)
@@ -590,9 +598,22 @@ class OpenArmKinematics:
             pose[side_mask] = np.asarray(side_pose, dtype=float)
             return pose
 
+        defaults = PoseIKSettings()
         optimizer = PoseIKOptimizer(
             lambda side_pose: self.grasp_point_pose(full_pose(side_pose)),
             lambda side_pose: self.collision_cost(full_pose(side_pose))[1],
+            settings=PoseIKSettings(
+                max_iterations=(
+                    defaults.max_iterations
+                    if max_iterations is None
+                    else int(max_iterations)
+                ),
+                position_tolerance_m=(
+                    defaults.position_tolerance_m
+                    if position_tolerance_m is None
+                    else float(position_tolerance_m)
+                ),
+            ),
         )
         result = optimizer.solve(
             position,
@@ -616,12 +637,21 @@ class OpenArmKinematics:
         return arm
 
     def solve_optimized(
-        self, target: npt.ArrayLike, seed: npt.ArrayLike
+        self,
+        target: npt.ArrayLike,
+        seed: npt.ArrayLike,
+        *,
+        max_iterations: int | None = None,
+        position_tolerance_m: float | None = None,
     ) -> npt.NDArray[np.float64]:
         """Bounded SQP position IK using the authored level orientation."""
 
         return self.solve_pose_optimized(
-            target, _quaternion_xyzw(self.level_rotation), seed
+            target,
+            _quaternion_xyzw(self.level_rotation),
+            seed,
+            max_iterations=max_iterations,
+            position_tolerance_m=position_tolerance_m,
         )
 
     # -- collision proxies --------------------------------------------------

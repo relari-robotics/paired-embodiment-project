@@ -116,6 +116,7 @@ class TeleopMapping:
     max_arm_joint_speed_rad_s: float
     max_gripper_joint_speed_rad_s: float
     ik_max_iterations: int = 14
+    ik_position_tolerance_m: float = 0.012
     orientation_mode: str = "adaptive"
     target_filter_time_constant_s: float = 0.08
     joint_tracking_time_constant_s: float = 0.12
@@ -142,6 +143,9 @@ class TeleopMapping:
                 payload.get("max_gripper_joint_speed_rad_s", 2.0)
             ),
             ik_max_iterations=int(payload.get("ik_max_iterations", 14)),
+            ik_position_tolerance_m=float(
+                payload.get("ik_position_tolerance_m", 0.012)
+            ),
             orientation_mode=str(payload.get("orientation_mode", "adaptive")),
             target_filter_time_constant_s=float(
                 payload.get("target_filter_time_constant_s", 0.08)
@@ -158,6 +162,11 @@ class TeleopMapping:
         )
         if result.ik_max_iterations < 1:
             raise ValueError("teleop ik_max_iterations must be at least 1")
+        if (
+            not np.isfinite(result.ik_position_tolerance_m)
+            or result.ik_position_tolerance_m <= 0
+        ):
+            raise ValueError("teleop ik_position_tolerance_m must be positive and finite")
         if result.orientation_mode not in {"adaptive", "table-parallel", "top-down"}:
             raise ValueError(
                 "teleop orientation_mode must be 'adaptive', 'table-parallel', or 'top-down'"

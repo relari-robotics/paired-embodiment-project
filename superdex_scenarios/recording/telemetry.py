@@ -269,7 +269,7 @@ class TelemetryRecorder:
                     f"contact/{name}/torque_com_norm_nm",
                 ]
             )
-        prefix = "gripper" if self.info.embodiment_id == "openarm_v2" else "hand"
+        prefix = "gripper" if self.info.embodiment_id.startswith("openarm_v2") else "hand"
         obj = self.object_label
         for group in self.info.contact_groups:
             columns.extend(
@@ -280,7 +280,7 @@ class TelemetryRecorder:
                     f"{prefix}/{group.name}_{obj}_force_norm_n",
                 ]
             )
-        if self.info.embodiment_id == "openarm_v2":
+        if self.info.embodiment_id.startswith("openarm_v2"):
             columns.extend(
                 [
                     f"gripper/two_jaw_{obj}_force_sum_n",
@@ -362,10 +362,10 @@ class TelemetryRecorder:
 
         hand_torques = motor_torque[self.info.hand_dofs]
         hand_abs_sum = float(np.sum(np.abs(hand_torques)))
-        if self.info.embodiment_id == "openarm_v2":
+        if self.info.embodiment_id.startswith("openarm_v2"):
             force_sum = float(np.sum(group_norms))
             equivalent_force = 0.5 * force_sum
-            coupled_torque = float(np.sum(hand_torques))
+            coupled_torque = float(np.sum(hand_torques[:2]))
             row.extend(
                 [
                     force_sum,
@@ -551,7 +551,7 @@ class TelemetryRecorder:
                 ),
             },
         }
-        if self.info.embodiment_id == "openarm_v2":
+        if self.info.embodiment_id.startswith("openarm_v2"):
             summary["gripper"] = {
                 f"peak_finger1_{self.object_label}_force_norm_n": (
                     self.peak_group_ball_force.get("finger1", 0.0)

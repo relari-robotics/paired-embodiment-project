@@ -456,7 +456,7 @@ def _blueprint(
     hand_dofs = {
         int(joint["dof_index"])
         for joint in joint_metadata
-        if str(joint["joint_name"]).startswith(("openarm_right_finger_joint", "joint_"))
+        if str(joint["joint_name"]).startswith(("openarm_right_finger_joint", "openarm_left_finger_joint", "joint_"))
     }
     controlled_dofs = {
         int(joint["dof_index"])
@@ -493,7 +493,7 @@ def _blueprint(
         label, entity = camera_entities[0]
         replay_views.insert(0, rrb.Spatial2DView(origin=f"/{entity}", name=label))
 
-    logical_root = "gripper" if embodiment == "openarm_v2" else "hand"
+    logical_root = "gripper" if embodiment.startswith("openarm_v2") else "hand"
     replay = rrb.Vertical(
         rrb.Horizontal(*replay_views),
         rrb.Horizontal(
@@ -587,14 +587,23 @@ def main() -> None:
     if output.suffix.lower() != ".rrd":
         raise SystemExit("--output must end in .rrd")
 
-    telemetry_path = _required(export_dir, "telemetry.csv")
-    telemetry_metadata_path = _required(export_dir, "telemetry_metadata.json")
-    contacts_path = _required(export_dir, "contacts.h5")
     episode_path = _required(export_dir, "episode.json")
+    telemetry_path = _optional(export_dir, "telemetry.csv")
+    telemetry_metadata_path = _optional(export_dir, "telemetry_metadata.json")
+    contacts_path = _optional(export_dir, "contacts.h5")
 
-    columns, telemetry = _load_telemetry(telemetry_path)
+    # Kinematic replays (runner.py --replay --kinematic) record transforms only.
+    if telemetry_path is not None:
+        columns, telemetry = _load_telemetry(telemetry_path)
+    else:
+        print("No telemetry.csv: writing the transform replay only.")
+        columns, telemetry = ["step", "time_s"], np.zeros((0, 2))
     episode = json.loads(episode_path.read_text(encoding="utf-8"))
-    telemetry_metadata = json.loads(telemetry_metadata_path.read_text(encoding="utf-8"))
+    telemetry_metadata = (
+        json.loads(telemetry_metadata_path.read_text(encoding="utf-8"))
+        if telemetry_metadata_path is not None
+        else {"joints": []}
+    )
     episode_actors = {str(actor) for actor in episode["actors"]}
     specification = episode.get("scenario", {})
     embodiment = str(episode.get("embodiment", "unknown"))
@@ -634,12 +643,14 @@ def main() -> None:
                 (str(camera_spec.get("label", camera_name)), camera_entity)
             )
             video_frame_counts[camera_name] = frame_count
-        print(f"Writing {len(columns) - 2} dense telemetry signals...")
-        signal_count = _log_telemetry(columns, telemetry)
+        signal_count = 0
+        if len(telemetry):
+            print(f"Writing {len(columns) - 2} dense telemetry signals...")
+            signal_count = _log_telemetry(columns, telemetry)
 
         source_contacts = 0
         logged_contacts = 0
-        if not args.skip_contact_arrows:
+        if not args.skip_contact_arrows and contacts_path is not None and len(telemetry):
             print("Writing individual 3D contact-force arrows...")
             source_contacts, logged_contacts = _log_contact_arrows(
                 contacts_path,

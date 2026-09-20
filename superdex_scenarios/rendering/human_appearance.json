@@ -1,0 +1,12 @@
+{
+  "skin": {
+    "base_color_linear": [0.39, 0.22, 0.15],
+    "pigment_dark_linear": [0.35, 0.185, 0.125],
+    "pigment_light_linear": [0.41, 0.235, 0.165],
+    "roughness": 0.48,
+    "roughness_range": [0.38, 0.58],
+    "subsurface_weight": 0.12,
+    "subsurface_scale_m": 0.0025
+  },
+  "shoulder_cap_length_m": 0.05
+}

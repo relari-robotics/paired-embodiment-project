@@ -60,7 +60,7 @@ class EpisodeContractTest(unittest.TestCase):
         self.assertEqual(tuple(TASK_PHASES), tuple(PHASE_SEQUENCE))
 
     def test_load_policy_class_resolves_module_and_class(self) -> None:
-        cls = load_policy_class("scenarios.ball_bowl.human_project:HumanPolicy")
+        cls = load_policy_class("scenarios.ball_bowl.embodiments.human_right_hand.policy:HumanPolicy")
         self.assertEqual(cls.__name__, "HumanPolicy")
         with self.assertRaises(ValueError):
             load_policy_class("no-colon")

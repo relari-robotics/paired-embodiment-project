@@ -22,13 +22,15 @@ without persisted output.
 | Ball mass | Uniform over 50, 100, ..., 500 g |
 | Ball color | Uniform over blue, red, yellow, green, orange, and purple |
 | Bowl color | Uniform over gray, ivory, teal, terracotta, navy, and mustard |
-| Bowl shape | Uniform over shallow round, deep round, X-oval, and Y-oval |
+| Bowl shape | Uniform over measured, wide, deep, and oval |
+| Bowl mass | Continuous uniform 150–400 g (drawn last, so a seed keeps the layout it had when the bowl was static); a randomized bowl is always movable |
 | Ball X/Y | Continuous uniform in `[-0.015, 0.030] × [-0.310, -0.190] m` |
 | Bowl X/Y | Continuous uniform in `[-0.140, 0.015] × [-0.035, 0.065] m` |
 
-The bowl variants scale the same open collision/render mesh. Their scales are
-`[2.40, 2.40, 0.35]`, `[2.55, 2.55, 0.55]`, `[2.90, 2.40, 0.34]`, and
-`[2.40, 2.90, 0.34]`. Consequently, both the physical geometry and TrajOpt rim
+The bowl variants scale the measured bowl (175 mm across, 70 mm tall, flat
+floor, no lip; `superdex_scenarios/assets/bowl.py`). Their scales are
+`[1.00, 1.00, 1.00]`, `[1.15, 1.15, 0.90]`, `[0.95, 0.95, 1.25]`, and
+`[1.15, 0.95, 1.00]`. Consequently, both the physical geometry and TrajOpt rim
 proxy change, including elliptical X/Y radii and the rim height.
 
 ## Validity and planning

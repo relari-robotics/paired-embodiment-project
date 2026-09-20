@@ -9,10 +9,9 @@ project_superdex/*
 project_superdex/assets/test
 
 # Prior run outputs (~277 MB) and the Studio-only scene bundle.
-superdex-scenarios/scenarios/openarm_ball_bowl/exports
 superdex-scenarios/scenarios/ball_bowl/exports
 superdex-scenarios/scenarios/ball_bowl/studio
-superdex-scenarios/scenarios/openarm_ball_bowl/studio
+superdex-scenarios/scenarios/ball_bowl/embodiments/*/studio
 
 # Never needed in the image.
 **/__pycache__

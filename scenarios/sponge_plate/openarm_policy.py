@@ -26,6 +26,7 @@ from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
 
+from superdex_scenarios.embodiments.openarm_v2 import right_gripper_pose
 from superdex_scenarios.planning import sample_natural_cubic_spline
 
 from . import scenario as task
@@ -83,7 +84,7 @@ class OpenArmPolicy:
         motion = self._motion()
         home = motion.home_to_pre_pick[0]
         pregrasp = motion.pre_pick_to_pick[-1]
-        grip = np.full(2, task.FINGERS_WIPE_CLOSED)
+        grip = right_gripper_pose(self.info, np.full(2, task.FINGERS_WIPE_CLOSED))
         place = motion.place_safe_to_place[-1]
 
         print(f"Executing {self.info.display_name} sponge-wipes-plate episode...")

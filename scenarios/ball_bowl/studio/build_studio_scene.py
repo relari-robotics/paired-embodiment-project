@@ -26,10 +26,8 @@ if str(SIM_ROOT) not in sys.path:
     sys.path.insert(0, str(SIM_ROOT))
 
 from scenarios.ball_bowl import scenario as task
-from superdex_scenarios.embodiments.human_right_arm import (
-    build_human_right_arm,
-    destroy_human_right_arm,
-)
+from scenarios.ball_bowl.embodiments import EMBODIMENTS
+from superdex_scenarios.embodiments.human_right_arm import destroy_human_right_arm
 
 
 def _safe_filename(name: str) -> str:
@@ -223,7 +221,9 @@ def _attach_workcell_render_models(
 def build(*, human: bool = False) -> Path:
     """Export, decorate, validate, and install the Studio scene."""
     export_name = "human_ball_bowl_studio" if human else "openarm_ball_bowl_studio"
-    output_dir = Path(__file__).resolve().parent / ("human_scene" if human else "scene")
+    embodiment_id = "human_right_hand" if human else "openarm_v2"
+    embodiments_root = Path(__file__).resolve().parents[1] / "embodiments"
+    output_dir = embodiments_root / embodiment_id / "studio"
     physics.initialize(num_worker_threads=0)
     display_name = "Human right arm" if human else "OpenArm v2"
     scene = physics.create_scene(f"{display_name}: blue ball into gray bowl")
@@ -236,11 +236,7 @@ def build(*, human: bool = False) -> Path:
     bot_info: task.BotInfo | None = None
 
     try:
-        bot_info = (
-            build_human_right_arm(scene, context, task.contact_params)
-            if human
-            else task.create_full_robot(scene, context)
-        )
+        bot_info = EMBODIMENTS[embodiment_id].build(scene, context)
         task.create_workcell(scene)
         ground_shape = physics.create_plane_shape(normal=[0.0, 0.0, 1.0], distance=0.0)
         scene.create_rigid_actor(
@@ -289,7 +285,7 @@ def build(*, human: bool = False) -> Path:
                     f"{len(result.actors)}"
                 )
 
-            if output_dir.name not in {"scene", "human_scene"}:
+            if output_dir.name != "studio" or output_dir.parents[1] != embodiments_root:
                 raise RuntimeError(f"Refusing to replace unexpected path: {output_dir}")
             if output_dir.exists():
                 shutil.rmtree(output_dir)

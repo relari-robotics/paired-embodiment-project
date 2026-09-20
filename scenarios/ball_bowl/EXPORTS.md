@@ -27,9 +27,10 @@ hook does not prescribe when or how a project records its result.
 | `<camera>.mp4` | Deterministic PBR view for each available camera |
 | `<camera>.json` | Intrinsics, pose/extrinsics, renderer, and encoding metadata |
 | `ball_bowl.rrd` | Optional self-contained Rerun recording |
+| `result.json` | Outcome of a `--replay` run (or any run with `--result`): success verdict, final object poses, tracking error, joint-limit clipping |
 
-OpenArm exports `desk_zed`, `wrist_right`, and `wrist_left`. The human scaffold
-exposes only `desk_zed`, because that embodiment has no modeled cameras.
+OpenArm exports `desk_gemini_335`, `wrist_right`, and `wrist_left`. The human
+scaffold exposes only `desk_gemini_335`, because that embodiment has no modeled cameras.
 
 ## Torque and force definitions
 
@@ -55,10 +56,11 @@ Logical ball grip channels are calculated from physical link-to-ball queries:
 
 ## Cameras
 
-The desk camera is a measured ZED-M calibration in
-[`camera_calibration.json`](camera_calibration.json). The calibrated OpenCV
-optical frame is transformed into the simulation world while preserving its
-right/down/forward convention.
+The desk camera is an Orbbec Gemini 335. Superdex resolves the globally active
+Relari desk calibration when one exists and otherwise uses the modeled profile
+in [`camera_calibration.json`](camera_calibration.json). The calibrated OpenCV
+optical frame is transformed from the desk frame into the simulation world
+while preserving its right/down/forward convention.
 
 OpenArm wrist-camera metadata lives with the embodiment at
 `superdex_scenarios/embodiments/config/openarm_v2_wrist_cameras.json`. Mount
@@ -73,8 +75,8 @@ Render one replay camera directly:
 ```bash
 uv run --no-project superdex_scenarios/rendering/pbr/export_video.py \
   --episode scenarios/ball_bowl/exports/latest/episode.json \
-  --camera desk_zed \
-  --output scenarios/ball_bowl/exports/latest/desk_zed.mp4
+  --camera desk_gemini_335 \
+  --output scenarios/ball_bowl/exports/latest/desk_gemini_335.mp4
 ```
 
 The replay itself lists its available cameras, so the exporter has no

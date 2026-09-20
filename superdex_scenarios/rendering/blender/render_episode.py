@@ -39,10 +39,12 @@ from mathutils import Matrix, Quaternion, Vector  # type: ignore[import-not-foun
 try:
     from .device import DEVICE_AUTO, SUPPORTED_DEVICES, configure_cycles_device
     from .render_plan import partition_frames
+    from .human_body import HumanBody, make_skin_material
 except ImportError:  # Blender executes this file as a standalone script.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from device import DEVICE_AUTO, SUPPORTED_DEVICES, configure_cycles_device
     from render_plan import partition_frames
+    from human_body import HumanBody, make_skin_material
 
 BLENDER_RESOURCES = Path(bpy.utils.resource_path("LOCAL")) / "datafiles" / "studiolights" / "world"
 
@@ -106,6 +108,9 @@ def parse_args() -> argparse.Namespace:
             "transforms for actor-mounted cameras"
         ),
     )
+    parser.add_argument("--no-human-figure", action="store_true", help="Hide the stationary scanned person")
+    parser.add_argument("--no-human-body", action="store_true",
+                        help="use original human link meshes instead of continuous skin")
     parser.add_argument("--save-blend", default=None, help="also save the built scene as a .blend")
     return parser.parse_args(argv)
 
@@ -601,7 +606,13 @@ class EpisodeScene:
             "wood": make_wood_material(),
             "floor": make_floor_material(),
         }
+        self.human_body = None
         self._build(args)
+        if not args.no_human_body and not args.hide_robot:
+            body = HumanBody(self)
+            if body.available:
+                body.build(make_skin_material(), include_figure=not args.no_human_figure)
+                self.human_body = body
 
     def _material_for(self, entry: dict, color: list[float] | None) -> bpy.types.Material:
         name = entry.get("material") or "generic"
@@ -701,6 +712,9 @@ class EpisodeScene:
             obj.data.vertices.foreach_set("co", nodes[frame_index].astype(np.float32).ravel())
             obj.data.update()
 
+        if self.human_body is not None:
+            self.human_body.pose(frame_index)
+
     def frame_indices(self, fps: float, start: float, end: float | None) -> list[int]:
         duration = float(self.times[-1]) if len(self.times) else 0.0
         end = duration if end is None else min(end, duration)
@@ -732,9 +746,6 @@ def main() -> None:
         episode, args.camera, episode.spec["cameras"][args.camera], args.lens
     )
     add_floor()
-    if args.save_blend:
-        bpy.ops.wm.save_as_mainfile(filepath=str(Path(args.save_blend).resolve()))
-
     if args.worker_count < 1:
         raise ValueError("--worker-count must be positive")
     if not 0 <= args.worker_index < args.worker_count:
@@ -758,6 +769,8 @@ def main() -> None:
     for output_index, frame_index in enumerate(indices):
         episode.apply_frame(frame_index)
         camera.apply_frame(frame_index)
+        if args.save_blend and output_index == 0:
+            bpy.ops.wm.save_as_mainfile(filepath=str(Path(args.save_blend).resolve()))
         global_output_index = output_offset + output_index
         frame_path = output / f"frame_{global_output_index:05d}.png"
         if args.resume and not args.overwrite and frame_path.exists() and frame_path.stat().st_size > 0:

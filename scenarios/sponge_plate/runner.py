@@ -43,7 +43,17 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from scenarios.ball_bowl.cameras import camera_payloads
 from superdex_scenarios.recording import PhaseLog, TelemetryRecorder, TransformRecorder
-from superdex_scenarios.simulation import PoseExecutor, create_pose_controller
+from superdex_scenarios.replay.cli import (
+    add_replay_arguments,
+    add_route_curves,
+    split_routes,
+    load_layout,
+    make_replay_policy,
+    park_objects,
+    validate_replay_arguments,
+    write_result,
+)
+from superdex_scenarios.simulation import KinematicExecutor, PoseExecutor, create_pose_controller
 
 if __package__:
     from . import scenario as task
@@ -112,19 +122,22 @@ class EpisodeRunner:
     def __init__(
         self,
         scenario: task.SpongePlateScenario,
-        controller: robotics.ControllerBase,
-        controller_target: robotics.ControllerMochiArticulatedPoseTarget,
+        controller: robotics.ControllerBase | None,
+        controller_target: robotics.ControllerMochiArticulatedPoseTarget | None,
         viewer: object | None,
         real_time: bool = False,
         allow_failed_grasp: bool = False,
         frame_callback=None,
         step_callback=None,
+        phase_sequence: tuple[str, ...] | None = None,
+        kinematic: bool = False,
     ) -> None:
         self.scenario = scenario
         self.scene = scenario.scene
         self.info = scenario.bot_info
         self.workcell = scenario.workcell
         self.allow_failed_grasp = allow_failed_grasp
+        self.objects_parked = False
         self.cleanliness = CleanlinessTracker(scenario)
 
         def on_step(step: int, target_pose: npt.NDArray[np.float64]) -> None:
@@ -132,19 +145,34 @@ class EpisodeRunner:
             if step_callback is not None:
                 step_callback(step, target_pose)
 
-        self.executor = PoseExecutor(
-            self.scene,
-            controller,
-            controller_target,
-            task.TIME_STEP,
-            task.RENDER_EVERY_STEPS,
-            viewer=viewer,
-            real_time=real_time,
-            frame_callback=frame_callback,
-            step_callback=on_step,
-        )
+        if kinematic:
+            self.executor: PoseExecutor = KinematicExecutor(
+                self.scene,
+                self.info.actor,
+                task.TIME_STEP,
+                task.RENDER_EVERY_STEPS,
+                viewer=viewer,
+                real_time=real_time,
+                frame_callback=frame_callback,
+                step_callback=on_step,
+            )
+        else:
+            assert controller is not None and controller_target is not None
+            self.executor = PoseExecutor(
+                self.scene,
+                controller,
+                controller_target,
+                task.TIME_STEP,
+                task.RENDER_EVERY_STEPS,
+                viewer=viewer,
+                real_time=real_time,
+                frame_callback=frame_callback,
+                step_callback=on_step,
+            )
         self.ee = self.info.link_actor(self.scene, f"/{self.info.end_effector_link}")
-        self.phases = PhaseLog(self.info.embodiment_id, self._phase_sample, TASK_PHASES)
+        self.phases = PhaseLog(
+            self.info.embodiment_id, self._phase_sample, phase_sequence or TASK_PHASES
+        )
 
     # -- state queries ----------------------------------------------------
 
@@ -314,6 +342,8 @@ class EpisodeRunner:
         self.info.actor.set_articulated_joint_velocities(
             np.zeros(self.info.actor.get_num_dofs(), dtype=NP_REAL)
         )
+        if self.objects_parked:
+            return
         sponge = self.workcell.sponge
         nodes, _ = task.sponge_tet_mesh()
         sponge.set_root_transform(
@@ -322,6 +352,22 @@ class EpisodeRunner:
         sponge.set_node_positions_local(np.asarray(nodes, dtype=NP_REAL).ravel())
         sponge.set_node_velocities_local(np.zeros(nodes.size, dtype=NP_REAL))
         self.cleanliness.map = task.CleanlinessMap(self.scenario.specification)
+
+    def park_objects(self) -> None:
+        """Move the plate and sponge off the desk for an object-free run."""
+        from superdex_scenarios.replay.cli import PARKED_OBJECT_POSITION
+
+        park_objects([self.workcell.plate])
+        sponge = self.workcell.sponge
+        nodes, _ = task.sponge_tet_mesh()
+        sponge.set_root_transform(
+            physics.TransformRT(
+                translation=PARKED_OBJECT_POSITION + [0.5, 0.0, 0.5 * task.SPONGE_SIZE[2]]
+            )
+        )
+        sponge.set_node_positions_local(np.asarray(nodes, dtype=NP_REAL).ravel())
+        sponge.set_node_velocities_local(np.zeros(nodes.size, dtype=NP_REAL))
+        self.objects_parked = True
 
     def run(self, policy: EpisodePolicy) -> bool:
         completed = policy.run(self)
@@ -371,14 +417,7 @@ def create_viewer(
         viewer.set_excluded_actors([f"*{name}" for name in sorted(hidden_links)])
     viewer.set_camera_view(look_from=list(look_from), look_at=list(look_at))
     if show_trajectory and len(points) > 1:
-        edges = np.column_stack([np.arange(len(points) - 1), np.arange(1, len(points))])
-        viewer.add_curve_network(
-            "planned_trajectory",
-            nodes=points,
-            edges=edges,
-            radius=0.0025,
-            color=task.TRAJECTORY_COLOR,
-        )
+        add_route_curves(viewer, points)
     viewer.render()
     for actor, color in (
         *((actor, task.WOOD_COLOR) for actor in scenario.workcell.desk_actors),
@@ -629,11 +668,13 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="accepted for parity with the ball-and-bowl runner; this scenario never renders MP4s",
     )
+    add_replay_arguments(parser)
     args = parser.parse_args()
     return args
 
 
 def validate_args(args: argparse.Namespace) -> bool:
+    validate_replay_arguments(args)
     if args.loop and not args.debugger:
         raise SystemExit("--loop requires --debugger")
     if args.headless and (args.debugger or args.loop):
@@ -686,15 +727,23 @@ def build_and_plan(
     options: PolicyOptions,
 ) -> tuple[task.SpongePlateScenario, EpisodePolicy]:
     def planner(scenario: task.SpongePlateScenario) -> EpisodePolicy:
-        policy = make_policy(scenario, options)
+        if args.replay is not None:
+            policy: EpisodePolicy = make_replay_policy(scenario, options, args)
+        else:
+            policy = make_policy(scenario, options)
         policy.plan()
         return policy
 
-    if args.fixed:
-        scenario = task.SpongePlateScenario.build(context, args.embodiment)
+    layout = load_layout(args.layout)
+    if args.fixed or layout is not None:
+        specification = (
+            task.ScenarioSpecification.from_layout(layout) if layout is not None else None
+        )
+        scenario = task.SpongePlateScenario.build(context, args.embodiment, specification)
         print(
-            "Scenario: fixed regression configuration; embodiment: "
-            f"{scenario.embodiment_id}"
+            "Scenario: "
+            + ("layout file " + args.layout if layout is not None else "fixed regression configuration")
+            + f"; embodiment: {scenario.embodiment_id}"
         )
         try:
             return scenario, planner(scenario)
@@ -712,7 +761,9 @@ def main() -> None:
     args = parse_args()
     automatic_headless_export = validate_args(args)
     selected_seed = (
-        None if args.fixed else (args.seed if args.seed is not None else secrets.randbits(63))
+        None
+        if args.fixed or args.layout is not None
+        else (args.seed if args.seed is not None else secrets.randbits(63))
     )
     if args.export_dir is not None:
         export_dir = Path(args.export_dir).expanduser().resolve()
@@ -728,6 +779,7 @@ def main() -> None:
     )
 
     physics.initialize(num_worker_threads=0)
+    replay_failed = False
     scenario: task.SpongePlateScenario | None = None
     viewer = None
     runner: EpisodeRunner | None = None
@@ -762,7 +814,11 @@ def main() -> None:
 
         points = policy.trajectory_points()
         if args.plan_only:
-            print(f"Plan valid: {len(points)} displayed trajectory points.")
+            routes = split_routes(points)
+            print(
+                f"Plan valid: {sum(len(r) for r in routes)} displayed trajectory points "
+                f"in {len(routes)} route(s)."
+            )
             return
         if args.snapshot is not None:
             scenario.bot_info.actor.set_articulated_pose_from_joints(
@@ -779,7 +835,10 @@ def main() -> None:
             print(f"Simulator snapshot: {snapshot_path}")
             return
 
-        controller, controller_target = create_pose_controller(scenario.bot_info)
+        if args.kinematic:
+            controller, controller_target = None, None
+        else:
+            controller, controller_target = create_pose_controller(scenario.bot_info)
         interactive = (
             not args.headless
             and not args.dry_run
@@ -892,7 +951,7 @@ def main() -> None:
             (export_dir / "scenario.json").write_text(
                 json.dumps(scenario_payload, indent=2) + "\n", encoding="utf-8"
             )
-            telemetry = TelemetryRecorder(
+            telemetry = None if args.kinematic else TelemetryRecorder(
                 scenario, export_dir, time_step=task.TIME_STEP, cameras=cameras
             )
 
@@ -909,9 +968,14 @@ def main() -> None:
             allow_failed_grasp=args.allow_failed_grasp,
             frame_callback=frame_callback if frame_callbacks else None,
             step_callback=telemetry.record_sample if telemetry is not None else None,
+            phase_sequence=getattr(policy, "phase_sequence", None),
+            kinematic=args.kinematic,
         )
         home_pose = policy.home_pose()
         runner.reset_episode(home_pose)
+        if args.no_objects:
+            runner.park_objects()
+            print("Task objects parked away from the desk; success is not evaluated.")
         if args.debugger:
             runner.hold_pose(home_pose, 1.5)
         uncontrolled = np.ones(scenario.bot_info.actor.get_num_dofs(), dtype=bool)
@@ -938,7 +1002,12 @@ def main() -> None:
             )
             coverage = runner.coverage
             returned = scenario.specification.sponge_returned(final_sponge)
-            success = coverage >= task.CLEAN_SUCCESS_COVERAGE and returned
+            evaluated = not (args.no_objects or args.kinematic)
+            success: bool | None = (
+                bool(completed and coverage >= task.CLEAN_SUCCESS_COVERAGE and returned)
+                if evaluated
+                else None
+            )
             print(
                 f"Episode {episode_number} {'complete' if completed else 'stopped'}; "
                 f"plate coverage {100 * coverage:.0f}% (need {100 * task.CLEAN_SUCCESS_COVERAGE:.0f}%), "
@@ -946,6 +1015,26 @@ def main() -> None:
                 f"sponge at {np.round(final_sponge, 3).tolist()}, returned={returned}, "
                 f"clean={success}, parked-side drift={parked_drift:.2e} rad."
             )
+            result_payload = {
+                "task": "sponge_plate",
+                "mode": "replay" if args.replay is not None else "policy",
+                "kinematic": bool(args.kinematic),
+                "objects_present": not args.no_objects,
+                "completed": bool(completed),
+                "success": success,
+                "coverage": float(coverage) if evaluated else None,
+                "required_coverage": task.CLEAN_SUCCESS_COVERAGE,
+                "sponge_returned": bool(returned) if evaluated else None,
+                "peak_plate_normal_force_n": float(runner.cleanliness.peak_plate_normal_force),
+                "final_sponge_position_m": np.round(final_sponge, 4).tolist(),
+                "parked_side_drift_rad": parked_drift,
+                "simulated_time_s": runner.executor.step_count * task.TIME_STEP,
+                "scenario": scenario_payload,
+            }
+            if hasattr(policy, "summary"):
+                result_payload["replay"] = policy.summary()
+            if args.replay is not None or args.result is not None:
+                write_result(result_payload, export_dir, args.result)
             if recorder is not None:
                 recorder.capture()
                 recording_path = (
@@ -966,10 +1055,13 @@ def main() -> None:
             if (
                 (args.headless or export_dir is not None)
                 and completed
-                and not success
+                and success is False
                 and not args.allow_failed_grasp
+                and args.replay is None
             ):
                 raise RuntimeError("Headless episode completed without cleaning the plate.")
+            if args.replay is not None and success is False:
+                replay_failed = True
             if not (args.loop and completed and success and physics.debugger.is_attached()):
                 break
             runner.hold_pose(home_pose, 1.5)
@@ -986,6 +1078,8 @@ def main() -> None:
         if scenario is not None:
             scenario.close()
         physics.shutdown()
+    if replay_failed:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

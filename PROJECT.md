@@ -171,9 +171,9 @@ The missing piece is the human-hand behavior: its grasp pose, wrist trajectory,
 finger motion, contact strategy, and release behavior.
 
 The implementation is the `HumanPolicy` class in
-[`scenarios/ball_bowl/human_project.py`](scenarios/ball_bowl/human_project.py).
+[`scenarios/ball_bowl/embodiments/human_right_hand/policy.py`](scenarios/ball_bowl/embodiments/human_right_hand/policy.py).
 It implements the same `EpisodePolicy` contract as the OpenArm reference
-([`openarm_policy.py`](scenarios/ball_bowl/openarm_policy.py)): plan the grasp
+([`embodiments/openarm_v2/policy.py`](scenarios/ball_bowl/embodiments/openarm_v2/policy.py)): plan the grasp
 and motion, expose the route and parked poses, and execute the phases through
 the shared runner, which records, checks and exports both embodiments
 identically. The OpenArm implementation is a behavioral reference, not an

@@ -3,12 +3,13 @@ import select
 import socket
 import threading
 import time
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from scenarios.ball_bowl.teleop_policy import (
+from scenarios.ball_bowl.embodiments.openarm_v2.teleop_policy import (
     TeleopPolicy,
     _LatestPacketIK,
     table_parallel_quaternion_xyzw,
@@ -74,12 +75,34 @@ def test_policy_falls_back_through_top_down_to_level_when_the_pose_is_infeasible
     calls = []
 
     class Kinematics:
-        def solve_pose_optimized(self, position, quaternion, seed, *, max_iterations=None):
-            calls.append(("pose", tuple(np.round(quaternion, 6)), max_iterations))
+        def solve_pose_optimized(
+            self,
+            position,
+            quaternion,
+            seed,
+            *,
+            max_iterations=None,
+            position_tolerance_m=None,
+        ):
+            calls.append(
+                (
+                    "pose",
+                    tuple(np.round(quaternion, 6)),
+                    max_iterations,
+                    position_tolerance_m,
+                )
+            )
             raise RuntimeError("orientation exceeds a joint limit")
 
-        def solve_optimized(self, position, seed, *, max_iterations=None):
-            calls.append(("level", None, max_iterations))
+        def solve_optimized(
+            self,
+            position,
+            seed,
+            *,
+            max_iterations=None,
+            position_tolerance_m=None,
+        ):
+            calls.append(("level", None, max_iterations, position_tolerance_m))
             return np.array([0.1, 0.2])
 
         def collision_cost(self, candidate):
@@ -95,7 +118,11 @@ def test_policy_falls_back_through_top_down_to_level_when_the_pose_is_infeasible
         arm_dofs=np.array([0, 1]),
         dof_groups={"right_gripper": np.array([2, 3])},
     )
-    policy.mapping = SimpleNamespace(map_hand=lambda hand: mapped, ik_max_iterations=6)
+    policy.mapping = SimpleNamespace(
+        map_hand=lambda hand: mapped,
+        ik_max_iterations=6,
+        ik_position_tolerance_m=0.025,
+    )
     policy.kinematics = {"right": Kinematics()}
     desired = np.zeros(4)
     accepted: dict[str, int] = {}
@@ -111,9 +138,9 @@ def test_policy_falls_back_through_top_down_to_level_when_the_pose_is_infeasible
     assert accepted == {"level": 1}
     top_down = tuple(np.round(top_down_quaternion_xyzw([0, 0, 0, 1], "right"), 6))
     assert calls == [
-        ("pose", (0.0, 0.0, 0.0, 1.0), 6),
-        ("pose", top_down, 6),
-        ("level", None, 6),
+        ("pose", (0.0, 0.0, 0.0, 1.0), 6, 0.025),
+        ("pose", top_down, 6, 0.025),
+        ("level", None, 6, 0.025),
     ]
     np.testing.assert_allclose(desired[:2], [0.1, 0.2])
     np.testing.assert_allclose(
@@ -125,8 +152,18 @@ def test_policy_top_down_mode_does_not_switch_orientation_fallbacks():
     calls = []
 
     class Kinematics:
-        def solve_pose_optimized(self, position, quaternion, seed, *, max_iterations=None):
-            calls.append((tuple(np.round(quaternion, 6)), max_iterations))
+        def solve_pose_optimized(
+            self,
+            position,
+            quaternion,
+            seed,
+            *,
+            max_iterations=None,
+            position_tolerance_m=None,
+        ):
+            calls.append(
+                (tuple(np.round(quaternion, 6)), max_iterations, position_tolerance_m)
+            )
             return np.array([0.1, 0.2])
 
         def collision_cost(self, candidate):
@@ -145,6 +182,7 @@ def test_policy_top_down_mode_does_not_switch_orientation_fallbacks():
     policy.mapping = SimpleNamespace(
         map_hand=lambda hand: mapped,
         ik_max_iterations=5,
+        ik_position_tolerance_m=0.025,
         orientation_mode="top-down",
     )
     policy.kinematics = {"right": Kinematics()}
@@ -155,7 +193,7 @@ def test_policy_top_down_mode_does_not_switch_orientation_fallbacks():
         {"hands": [{"side": "right"}]}, desired, {"right": -np.inf}, accepted
     ) == 1
     expected = tuple(np.round(top_down_quaternion_xyzw([0, 0, 0, 1], "right"), 6))
-    assert calls == [(expected, 5)]
+    assert calls == [(expected, 5, 0.025)]
     assert accepted == {"top-down": 1}
 
 
@@ -165,8 +203,18 @@ def test_policy_table_parallel_mode_does_not_switch_orientation_fallbacks():
     calls = []
 
     class Kinematics:
-        def solve_pose_optimized(self, position, quaternion, seed, *, max_iterations=None):
-            calls.append((tuple(np.round(quaternion, 6)), max_iterations))
+        def solve_pose_optimized(
+            self,
+            position,
+            quaternion,
+            seed,
+            *,
+            max_iterations=None,
+            position_tolerance_m=None,
+        ):
+            calls.append(
+                (tuple(np.round(quaternion, 6)), max_iterations, position_tolerance_m)
+            )
             return np.array([0.1, 0.2])
 
         def collision_cost(self, candidate):
@@ -186,6 +234,7 @@ def test_policy_table_parallel_mode_does_not_switch_orientation_fallbacks():
     policy.mapping = SimpleNamespace(
         map_hand=lambda hand: mapped,
         ik_max_iterations=5,
+        ik_position_tolerance_m=0.025,
         orientation_mode="table-parallel",
     )
     policy.kinematics = {"right": Kinematics()}
@@ -196,7 +245,7 @@ def test_policy_table_parallel_mode_does_not_switch_orientation_fallbacks():
         {"hands": [{"side": "right"}]}, desired, {"right": -np.inf}, accepted
     ) == 1
     expected = tuple(np.round(table_parallel_quaternion_xyzw(quaternion), 6))
-    assert calls == [(expected, 5)]
+    assert calls == [(expected, 5, 0.025)]
     assert accepted == {"table-parallel": 1}
 
 
@@ -314,6 +363,7 @@ def test_mapping_reads_ik_iteration_budget(tmp_path):
     payload = {
         "format": "superdex-teleop-mapping-v1",
         "ik_max_iterations": 6,
+        "ik_position_tolerance_m": 0.025,
         "orientation_mode": "table-parallel",
         "target_filter_time_constant_s": 0.06,
         "joint_tracking_time_constant_s": 0.10,
@@ -334,6 +384,7 @@ def test_mapping_reads_ik_iteration_budget(tmp_path):
     path.write_text(json.dumps(payload))
     mapping = TeleopMapping.load(path)
     assert mapping.ik_max_iterations == 6
+    assert mapping.ik_position_tolerance_m == pytest.approx(0.025)
     assert mapping.orientation_mode == "table-parallel"
     assert mapping.target_filter_time_constant_s == pytest.approx(0.06)
     assert mapping.joint_tracking_time_constant_s == pytest.approx(0.10)
@@ -344,6 +395,11 @@ def test_mapping_reads_ik_iteration_budget(tmp_path):
     with pytest.raises(ValueError, match="ik_max_iterations"):
         TeleopMapping.load(path)
     payload["ik_max_iterations"] = 6
+    payload["ik_position_tolerance_m"] = 0
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="ik_position_tolerance_m"):
+        TeleopMapping.load(path)
+    payload["ik_position_tolerance_m"] = 0.025
     payload["orientation_mode"] = "sideways"
     path.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match="orientation_mode"):
@@ -378,7 +434,7 @@ def test_policy_catches_physics_up_with_smooth_acceleration(monkeypatch):
     controlled = np.array([0, 1])
     max_velocity = np.full(2, 1.0)
     max_acceleration = np.full(2, 2.0)
-    monkeypatch.setattr("scenarios.ball_bowl.teleop_policy.time.perf_counter", lambda: 10.011)
+    monkeypatch.setattr("scenarios.ball_bowl.embodiments.openarm_v2.teleop_policy.time.perf_counter", lambda: 10.011)
 
     assert TeleopPolicy._advance_physics(
         runner,
@@ -393,7 +449,8 @@ def test_policy_catches_physics_up_with_smooth_acceleration(monkeypatch):
         0.12,
     )
 
-    assert executor.step_count == 5
+    # Steps 1 to 4 are due by 10.011 s (10.0025 .. 10.010); step 5 is due at 10.0125.
+    assert executor.step_count == 4
     assert np.all(current > 0)
     poses = np.vstack((np.zeros(2), executor.poses))
     velocities = np.diff(poses, axis=0) / 0.0025
@@ -401,6 +458,64 @@ def test_policy_catches_physics_up_with_smooth_acceleration(monkeypatch):
     assert np.max(np.abs(velocities)) <= 1.0 + 1e-12
     assert np.max(np.abs(accelerations)) <= 2.0 + 1e-12
     np.testing.assert_allclose(executor.poses[-1], current)
+
+
+def test_policy_returns_to_the_input_loop_after_each_paced_step(monkeypatch):
+    """A real-time executor wakes late from its pacing sleep; input must still be polled.
+
+    Regression: comparing the step just taken with the wall clock was never
+    true after that sleep, so every call ran the full catch-up budget (0.5 s)
+    and teleoperation targets were sampled about twice a second.
+    """
+
+    clock = {"now": 20.0}
+
+    class PacedExecutor:
+        real_time = True
+        wall_start = 20.0
+        step_count = 0
+
+        def step(self, pose):
+            self.step_count += 1
+            due = self.wall_start + self.step_count * 0.0025
+            if due > clock["now"]:
+                # time.sleep(remaining) overshoots: wake 0.3 ms after the due time.
+                clock["now"] = due + 0.0003
+            return True
+
+    executor = PacedExecutor()
+    monkeypatch.setattr(
+        "scenarios.ball_bowl.embodiments.openarm_v2.teleop_policy.time.perf_counter",
+        lambda: clock["now"],
+    )
+    args = (
+        SimpleNamespace(executor=executor),
+        np.zeros(1),
+        np.ones(1),
+        np.zeros(1),
+        np.zeros(1),
+        np.array([0]),
+        np.array([1.0]),
+        np.array([2.0]),
+        0.08,
+        0.12,
+    )
+    for call in range(1, 41):
+        assert TeleopPolicy._advance_physics(*args)
+        assert executor.step_count == call  # one step per call while on time
+
+    # After a 30 ms stall the loop catches up every due step in one call.
+    clock["now"] += 0.030
+    assert TeleopPolicy._advance_physics(*args)
+    assert executor.step_count == 40 + 12
+
+    # A long stall is caught up only by the bounded budget; the rest of the debt
+    # is dropped so input is never starved and nothing fast-forwards later.
+    clock["now"] += 1.0
+    assert TeleopPolicy._advance_physics(*args)
+    assert executor.step_count == 52 + 20
+    assert TeleopPolicy._advance_physics(*args)
+    assert executor.step_count == 52 + 20 + 1
 
 
 def test_policy_retarget_preserves_velocity_continuity():
@@ -499,3 +614,62 @@ def test_async_ik_keeps_only_the_latest_packet_without_blocking():
     assert started_total == 2
     assert solved_total == 2
     np.testing.assert_allclose(desired, [3.0, 3.0])
+
+
+def test_desk_camera_view_limits_are_the_image_corners_at_both_heights():
+    from scenarios.ball_bowl.cameras import _desk_camera, desk_camera_view_limits
+
+    nodes, edges = desk_camera_view_limits(0.39, 0.70)
+    assert nodes.shape == (8, 3) and edges.shape == (12, 2)
+    np.testing.assert_allclose(nodes[:4, 2], 0.39)
+    np.testing.assert_allclose(nodes[4:, 2], 0.70)
+    camera = _desk_camera()
+    pose, intrinsics = camera.world_from_camera_cv, camera.intrinsics
+    position = np.asarray(pose["position_m"])
+    axes = np.column_stack(
+        (pose["right_world"], -np.asarray(pose["up_world"]), pose["forward_world"])
+    )
+    corners = [(0, 0), (intrinsics["width_px"], 0)]
+    corners += [(intrinsics["width_px"], intrinsics["height_px"]), (0, intrinsics["height_px"])]
+    for ring in (nodes[:4], nodes[4:]):
+        for node, (u, v) in zip(ring, corners, strict=True):
+            x, y, z = axes.T @ (node - position)
+            assert z > 0
+            assert intrinsics["fx_px"] * x / z + intrinsics["cx_px"] == pytest.approx(u, abs=1e-6)
+            assert intrinsics["fy_px"] * y / z + intrinsics["cy_px"] == pytest.approx(v, abs=1e-6)
+    # The camera looks down, so it sees less the higher the hand is.
+    assert np.ptp(nodes[4:, :2], axis=0).prod() < np.ptp(nodes[:4, :2], axis=0).prod()
+    with pytest.raises(ValueError, match="does not look"):
+        desk_camera_view_limits(0.39, 5.0)
+
+
+def test_shipped_teleop_mapping_moves_the_gripper_one_to_one():
+    from scenarios.ball_bowl import scenario as task
+    from superdex_scenarios.teleop import TeleopMapping
+
+    path = Path(task.__file__).parent / "embodiments/openarm_v2/teleop_mapping.json"
+    mapping = TeleopMapping.load(path)
+    desk_origin = np.array(
+        [task.DESK_MIN[0] + 0.5 * task.DESK_SIZE[0], 0.0, task.DESK_TOP_Z]
+    )
+    for arm in mapping.arms.values():
+        source = arm.source_max_desk_m - arm.source_min_desk_m
+        target = arm.target_max_world_m - arm.target_min_world_m
+        np.testing.assert_allclose(target / source, 1.0, atol=1e-9)
+        # The desk frame sits at the tabletop center: a hand over a point of the
+        # real desk drives the gripper to the same point of the simulated desk.
+        np.testing.assert_allclose(
+            arm.target_min_world_m - arm.source_min_desk_m, desk_origin, atol=1e-3
+        )
+
+
+def test_box_wireframe_has_the_twelve_edges_of_a_box():
+    from scenarios.ball_bowl.runner import box_wireframe
+
+    nodes, edges = box_wireframe([-0.16, -0.38, 0.41], [0.06, -0.02, 0.70])
+    assert nodes.shape == (8, 3) and edges.shape == (12, 2)
+    lengths = np.linalg.norm(nodes[edges[:, 0]] - nodes[edges[:, 1]], axis=1)
+    assert sorted(np.round(lengths, 6)) == sorted([0.22] * 4 + [0.36] * 4 + [0.29] * 4)
+    # Every edge runs along exactly one axis.
+    assert np.all(np.count_nonzero(nodes[edges[:, 0]] != nodes[edges[:, 1]], axis=1) == 1)
+

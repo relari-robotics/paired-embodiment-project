@@ -11,7 +11,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from scenarios.ball_bowl.episode import EpisodePolicy, PolicyOptions  # noqa: E402
-from scenarios.ball_bowl.human_project import HumanPolicy  # noqa: E402
+from scenarios.ball_bowl.embodiments.human_right_hand.policy import HumanPolicy  # noqa: E402
 
 
 class HumanProjectScaffoldTest(unittest.TestCase):
