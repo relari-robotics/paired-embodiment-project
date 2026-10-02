@@ -7,7 +7,7 @@ and export.  Everything that differs between embodiments -- how the grasp is
 solved, how the trajectory is planned, how the fingers or jaws are closed and
 how the object is carried -- lives in an :class:`EpisodePolicy`.
 
-An embodiment registers its policy class in ``scenario.EMBODIMENTS``; the
+An embodiment registers its policy class in ``embodiments.EMBODIMENTS``; the
 runner instantiates it with the built scenario and the CLI options, asks it to
 plan, and then hands it an :class:`~scenarios.ball_bowl.runner.EpisodeRunner`
 whose helpers (``follow``, ``hold``, ``phase``, ``check_grasp_alignment``,
@@ -35,6 +35,19 @@ if TYPE_CHECKING:
 # Semantic task phases, in order.  Both embodiments mark the same phases so
 # paired episodes can be aligned phase by phase in the dataset.
 TASK_PHASES = PHASE_SEQUENCE
+
+# With a ``bowl_target_xy`` the second arm moves the bowl first; the ball phases
+# follow unchanged.  A policy that runs this sequence sets it as its
+# ``phase_sequence``.
+MOVE_BOWL_PHASES: tuple[str, ...] = (
+    *TASK_PHASES[:2],
+    "bowl_approach",
+    "bowl_grasp",
+    "bowl_move",
+    "bowl_release",
+    "bowl_retreat",
+    *TASK_PHASES[2:],
+)
 
 
 class PlanningError(RuntimeError):
@@ -101,6 +114,7 @@ def load_policy_class(reference: str) -> type:
 
 
 __all__ = [
+    "MOVE_BOWL_PHASES",
     "TASK_PHASES",
     "EpisodePolicy",
     "PlanningError",

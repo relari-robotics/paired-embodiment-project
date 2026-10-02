@@ -1,0 +1,10 @@
+{
+  "comment": "Workspace-wide layout: blue starts on the right, red on the left, and both require a physical cross-arm relay.",
+  "organizer_xy": [-0.019767757315013672, -0.004030177131717534],
+  "part_xy": [
+    [-0.08600839631680075, -0.39176069555030696],
+    [-0.11598592636480845, 0.21941810573932283],
+    [-0.17369384972867552, -0.4270592377602545]
+  ],
+  "tea_order": [2, 0, 1]
+}

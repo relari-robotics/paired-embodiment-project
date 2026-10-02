@@ -3,6 +3,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
+import { HumanPreview } from "./human.js";
+
 const viewport = document.querySelector("#viewport");
 const loading = document.querySelector("#loading");
 const errorPanel = document.querySelector("#error");
@@ -85,6 +87,18 @@ backWall.receiveShadow = true;
 scene.add(backWall);
 
 const gltfLoader = new GLTFLoader();
+const humanArmAssets = new Map([
+  ["human_upper_arm", "upper_arm"],
+  ["human_forearm", "forearm"],
+  ["human_shoulder_anchor", "shoulder_anchor"],
+]);
+
+function anatomicalArmPath(actor) {
+  const asset = humanArmAssets.get(actor.split("/").at(-1));
+  return asset
+    ? new URL(`../../embodiments/assets/${asset}.glb`, import.meta.url).href
+    : null;
+}
 const axisConversion = new THREE.Quaternion().setFromAxisAngle(
   new THREE.Vector3(1, 0, 0),
   -Math.PI / 2,
@@ -93,11 +107,15 @@ const inverseAxisConversion = axisConversion.clone().invert();
 const objects = new Map();
 const speedOptions = [0.5, 1, 1.5, 2];
 let replay;
+let humanSkin = null;
+let humanPreview = null;
 const query = new URLSearchParams(window.location.search);
 let exportMode = query.get("export") === "1";
 let cameraOrder = [];
 let cameraLabels = {};
-let selectedCameraName = query.get("camera") ?? "desk_zed";
+let selectedCameraName = query.get("camera") ?? "desk_gemini_335";
+// A free perspective camera for exports: {position, target} in Three.js space, fov in degrees.
+let freeCamera = null;
 let playing = !exportMode;
 let elapsed = 0;
 let previousTime;
@@ -124,15 +142,18 @@ function simulationVectorToThree(vector) {
 }
 
 function selectedCameraSpec() {
+  if (selectedCameraName === "free") return { name: "free", kind: "free", label: "Free" };
   const spec = replay?.cameras?.find((candidate) => candidate.name === selectedCameraName);
   if (!spec) throw new Error(`Unknown camera: ${selectedCameraName}`);
   return spec;
 }
 
 function updateCalibratedProjection(width, height) {
-  if (!replay?.cameras?.length) {
+  if (!replay?.cameras?.length || selectedCameraName === "free") {
+    camera.fov = freeCamera?.fov ?? 45;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
     return;
   }
   const intrinsics = selectedCameraSpec().intrinsics;
@@ -151,6 +172,17 @@ function updateCalibratedProjection(width, height) {
     0, 0, -1, 0,
   );
   camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+}
+
+function applyFreeCamera() {
+  if (!freeCamera) throw new Error("Free camera pose is not configured.");
+  camera.position.copy(freeCamera.position);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(freeCamera.target);
+  controls.target.copy(freeCamera.target);
+  controls.update();
+  camera.updateMatrixWorld();
+  updateCalibratedProjection(renderer.domElement.width, renderer.domElement.height);
 }
 
 function applyFixedCamera() {
@@ -216,14 +248,17 @@ function updateFirstPersonVisibility() {
 }
 
 function selectCamera(name) {
-  if (!cameraOrder.includes(name)) throw new Error(`Unknown camera: ${name}`);
+  if (name !== "free" && !cameraOrder.includes(name)) throw new Error(`Unknown camera: ${name}`);
   selectedCameraName = name;
-  cameraButton.textContent = cameraLabels[name];
-  cameraButton.setAttribute("aria-label", `Switch camera; showing ${cameraLabels[name]}`);
-  controls.enabled = !exportMode && name === "desk_zed";
+  const label = name === "free" ? "Free" : cameraLabels[name];
+  cameraButton.textContent = label;
+  cameraButton.setAttribute("aria-label", `Switch camera; showing ${label}`);
+  controls.enabled = !exportMode && name === "desk_gemini_335";
   updateFirstPersonVisibility();
   updateCalibratedProjection(renderer.domElement.width, renderer.domElement.height);
-  if (selectedCameraSpec().kind === "fixed") {
+  if (name === "free") {
+    applyFreeCamera();
+  } else if (selectedCameraSpec().kind === "fixed") {
     applyFixedCamera();
   } else if (replay) {
     applyReplayTime(elapsed);
@@ -236,11 +271,16 @@ function collectAssetEntries(prefab, manifestUrl) {
   for (const robot of prefab.actors.articulated ?? []) {
     for (const link of robot.links ?? []) {
       if (!link.renderModel) continue;
+      const actor = actorNameForLink(robot.name, link.name);
+      const armPath = anatomicalArmPath(actor);
       entries.push({
-        actor: actorNameForLink(robot.name, link.name),
-        path: new URL(link.renderModel.replace(/^\.\//, ""), manifestDirectory).href,
+        actor,
+        path: armPath
+          ?? new URL(link.renderModel.replace(/^\.\//, ""), manifestDirectory).href,
         scale: simScaleToThree(link.renderModelScale),
-        color: replay.embodiment === "human_right_arm" ? [0.68, 0.40, 0.28] : undefined,
+        color: humanSkin && !armPath && link.name.startsWith("bone_")
+          ? humanSkin.base_color_linear : undefined,
+        skin: Boolean(humanSkin && link.name.startsWith("bone_")),
       });
     }
   }
@@ -249,12 +289,21 @@ function collectAssetEntries(prefab, manifestUrl) {
     const override = replay.renderOverrides?.[actor.name] ?? {};
     entries.push({
       actor: actor.name,
-      path: new URL(actor.renderModel.replace(/^\.\//, ""), manifestDirectory).href,
+      path: anatomicalArmPath(actor.name)
+        ?? new URL(actor.renderModel.replace(/^\.\//, ""), manifestDirectory).href,
       scale: simScaleToThree(override.scale ?? actor.renderModelScale),
       color: override.color,
     });
   }
-  return entries;
+  // The anatomical upper arm includes Blender's shoulder cap. The continuous
+  // forearm also replaces the standalone hand's rigid wrist cuff.
+  const suffixes = new Set(entries.map((entry) => entry.actor.split("/").at(-1)));
+  return entries.filter((entry) => {
+    const suffix = entry.actor.split("/").at(-1);
+    if (suffix === "human_shoulder_anchor" && suffixes.has("human_upper_arm")) return false;
+    if (suffix === "bone_01_wrist_stub" && suffixes.has("human_forearm")) return false;
+    return true;
+  });
 }
 
 async function loadModel(entry) {
@@ -271,6 +320,10 @@ async function loadModel(entry) {
         const material = source.clone();
         material.envMapIntensity = entry.actor === "gray_bowl" ? 1.35 : 0.9;
         if (entry.color && material.color) material.color.fromArray(entry.color);
+        if (entry.skin) {
+          material.roughness = humanSkin.roughness;
+          material.metalness = 0;
+        }
         material.needsUpdate = true;
         return material;
       };
@@ -322,6 +375,8 @@ function applyReplayTime(seconds) {
       .multiply(quaternionA)
       .multiply(inverseAxisConversion);
   }
+
+  humanPreview?.update(frameA, frameB, mix);
 
   if (selectedCameraSpec().kind === "actor") {
     applyActorCamera(frameA, frameB, mix);
@@ -380,13 +435,22 @@ window.addEventListener("resize", () => {
   updateCalibratedProjection(window.innerWidth, window.innerHeight);
 });
 
-function configureExport(width, height, cameraName = "desk_zed") {
+function configureExport(width, height, cameraName = "desk_gemini_335", free = null) {
   if (!window.superdexExport.ready) throw new Error("Replay is not ready.");
   exportMode = true;
   playing = false;
   document.body.classList.add("export-mode");
   renderer.setPixelRatio(1);
   renderer.setSize(width, height, false);
+  if (free) {
+    // look_from / look_at are simulation-frame (FLU) metres.
+    freeCamera = {
+      position: simulationVectorToThree(free.look_from),
+      target: simulationVectorToThree(free.look_at),
+      fov: free.fov_deg ?? 45,
+    };
+    cameraName = "free";
+  }
   selectCamera(cameraName);
   controls.enabled = false;
   applyReplayTime(0);
@@ -445,7 +509,13 @@ async function start() {
         throw new Error(`Replay does not contain camera actor ${cameraSpec.actor_suffix}`);
       }
     }
+    if (replay.actors.some((actor) => actor.split("/").at(-1) === "human_upper_arm")) {
+      const appearanceResponse = await fetch(new URL("../human_appearance.json", import.meta.url));
+      if (!appearanceResponse.ok) throw new Error("Could not load the human appearance settings.");
+      humanSkin = (await appearanceResponse.json()).skin;
+    }
     await Promise.all(collectAssetEntries(prefab, replay.renderManifest).map(loadModel));
+    humanPreview = await HumanPreview.load(scene, gltfLoader, replay, objects);
     applyReplayTime(0);
     selectCamera(selectedCameraName);
     if (exportMode) document.body.classList.add("export-mode");

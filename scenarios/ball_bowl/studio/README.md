@@ -1,10 +1,10 @@
 # Ball-and-bowl Studio assets
 
-This folder contains self-contained public SuperDex Studio manifests for both
-physical embodiments:
+This folder builds the self-contained public SuperDex Studio manifests, which
+live with their embodiment:
 
-- `scene/openarm_ball_bowl_studio.mochi_scene`
-- `human_scene/human_ball_bowl_studio.mochi_scene`
+- `../embodiments/openarm_v2/studio/openarm_ball_bowl_studio.mochi_scene`
+- `../embodiments/human_right_hand/studio/human_ball_bowl_studio.mochi_scene`
 
 Each bundle includes the embodiment, wooden desk, tennis-size ball, bowl, ground
 collision actor, generated Mochi collision assets, and copied GLB render assets.

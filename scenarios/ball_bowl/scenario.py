@@ -16,15 +16,20 @@
 
 One :class:`BallBowlScenario` holds the task state -- scene, sampled
 specification, workcell, the embodiment's physical model and its kinematic
-twin.  Embodiments are registered in :data:`EMBODIMENTS`; each names the policy
-class (see :mod:`episode`) that plans and executes the task for it.  The
-OpenArm entry is the complete reference; the human entry's policy is the
-project deliverable.
+twins.  Nothing in this module knows a particular embodiment: the robot and
+the human hand live in :mod:`scenarios.ball_bowl.embodiments`, one subpackage
+each, and register themselves in ``embodiments.EMBODIMENTS``.
+
+The ball is a dynamic rigid body, and so is the bowl unless the specification
+says ``bowl_static`` (the runner's ``--fixed`` regression scene).  A
+specification may name a ``bowl_target_xy``: the bowl then has to be moved
+there before the ball goes in (the bimanual variant of the task), and success
+also requires the bowl to rest upright at that target.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -33,24 +38,16 @@ import numpy.typing as npt
 from superdex import physics, robotics
 from superdex.physics.paths import resolve_asset
 
+from superdex_scenarios.assets import bowl as bowl_asset
 from superdex_scenarios.embodiments.base import ArmKinematics, EmbodimentModel
-from superdex_scenarios.embodiments.human_right_arm import (
-    HumanArmKinematics,
-    build_human_right_arm,
-    destroy_human_right_arm,
-)
-from superdex_scenarios.embodiments.openarm_v2 import (
-    OpenArmKinematics,
-    build_openarm_v2,
-    destroy_openarm_v2,
-)
-from superdex_scenarios.planning import TrajOptTrajectoryOptimizer
 
-from .collision import BallBowlCollisionModel
+from .embodiments import DEFAULT_EMBODIMENT
 
-# Workcell dimensions.  SuperDex uses metres and a Z-up world.
-DESK_MIN = np.array([-0.36, -0.38, 0.338], dtype=float)
-DESK_SIZE = np.array([1.02, 0.76, 0.05], dtype=float)
+# Workcell dimensions. SuperDex uses metres and a Z-up world. The robot is at
+# the -X edge of the desk and faces +X, so the 47-inch edge runs left-to-right
+# along Y and faces the robot; the 24-inch dimension is the desk depth along X.
+DESK_SIZE = np.array([24.0 * 0.0254, 47.0 * 0.0254, 0.05], dtype=float)
+DESK_MIN = np.array([-0.36, -0.5 * DESK_SIZE[1], 0.338], dtype=float)
 DESK_TOP_Z = float(DESK_MIN[2] + DESK_SIZE[2])
 DESK_LEG_SIZE = np.array([0.055, 0.055, DESK_MIN[2]], dtype=float)
 
@@ -81,10 +78,16 @@ BALL_START = np.array(
     ]
 )
 
+# The bowl is the procedural bowl of superdex_scenarios.assets.bowl, measured
+# from the recorded demonstrations (175 mm across, 70 mm tall, flat floor, no
+# lip); shape variants scale it.
 BOWL_CENTER_XY = np.array([-0.04, 0.02])
-BOWL_SCALE = np.array([2.4, 2.4, 0.35])
-BOWL_OUTER_RADIUS = 0.047 * BOWL_SCALE[0]
-BOWL_RIM_Z = DESK_TOP_Z + 0.113 * BOWL_SCALE[2]
+BOWL_MASS = 0.25
+BOWL_MASS_RANGE = (0.15, 0.40)
+BOWL_SCALE = np.array([1.0, 1.0, 1.0])
+BOWL_OUTER_RADIUS = bowl_asset.OUTER_RADIUS * BOWL_SCALE[0]
+BOWL_RIM_Z = DESK_TOP_Z + bowl_asset.HEIGHT * BOWL_SCALE[2]
+BALL_RELEASE_CLEARANCE = 0.02
 
 # The points below refer to GRASP_POINT_EE, which coincides with the ball centre
 # while held.  Keeping the same local point for every IK target preserves the
@@ -95,9 +98,14 @@ PICK = BALL_START.copy()
 GRIPPER_APPROACH_WORLD = np.array([1.0, 0.0, 0.0])
 PRE_PICK = PICK - 0.13 * GRIPPER_APPROACH_WORLD
 PICK_LIFT = PICK + np.array([0.0, 0.0, 0.115])
-PLACE_SAFE = np.array([BOWL_CENTER_XY[0], BOWL_CENTER_XY[1], 0.52])
-PLACE = np.array([BOWL_CENTER_XY[0], BOWL_CENTER_XY[1], 0.48])
-BALL_RELEASE_CLEARANCE = PLACE[2] - BOWL_RIM_Z - BALL_RADIUS
+PLACE = np.array(
+    [
+        BOWL_CENTER_XY[0],
+        BOWL_CENTER_XY[1],
+        BOWL_RIM_Z + BALL_RADIUS + BALL_RELEASE_CLEARANCE,
+    ]
+)
+PLACE_SAFE = PLACE + np.array([0.0, 0.0, 0.04])
 
 TIME_STEP = 1.0 / 400.0
 RENDER_EVERY_STEPS = 6
@@ -119,6 +127,20 @@ BOWL_X_RANGE = (-0.14, 0.015)
 BOWL_Y_RANGE = (-0.035, 0.065)
 MAX_RANDOMIZATION_ATTEMPTS = 24
 
+# Move-the-bowl variant.  The bowl starts on the robot's left, forward of the
+# left gripper's parked home footprint (whose jaws reach world x = -0.065 m at
+# rim height), and has to end near the middle of the desk, where both arms
+# reach; from there on it is the plain task.
+MOVE_BOWL_START_XY = np.array([0.04, 0.20])
+MOVE_BOWL_TARGET_XY = np.array([0.0, 0.02])
+MOVE_BOWL_START_X_RANGE = (0.03, 0.08)
+MOVE_BOWL_START_Y_RANGE = (0.17, 0.23)
+MOVE_BOWL_TARGET_X_RANGE = (-0.08, 0.01)
+MOVE_BOWL_TARGET_Y_RANGE = (-0.02, 0.05)
+BOWL_TARGET_TOLERANCE = 0.06
+"""Bowl centre must end within this XY distance of its target."""
+BOWL_MAX_TILT_DEG = 15.0
+
 
 @dataclass(frozen=True)
 class ColorChoice:
@@ -130,7 +152,7 @@ class ColorChoice:
 
 @dataclass(frozen=True)
 class BowlShapeChoice:
-    """A collision/render scale variant of the open paper-cup bowl mesh."""
+    """An (x, y, z) scale variant of the measured bowl; (1, 1, 1) is the recorded bowl."""
 
     name: str
     scale: tuple[float, float, float]
@@ -153,10 +175,10 @@ BOWL_COLORS = (
     ColorChoice("mustard", (0.72, 0.49, 0.055)),
 )
 BOWL_SHAPES = (
-    BowlShapeChoice("shallow_round", (2.40, 2.40, 0.35)),
-    BowlShapeChoice("deep_round", (2.55, 2.55, 0.55)),
-    BowlShapeChoice("wide_oval_x", (2.90, 2.40, 0.34)),
-    BowlShapeChoice("wide_oval_y", (2.40, 2.90, 0.34)),
+    BowlShapeChoice("measured", (1.00, 1.00, 1.00)),
+    BowlShapeChoice("wide", (1.15, 1.15, 0.90)),
+    BowlShapeChoice("deep", (0.95, 0.95, 1.25)),
+    BowlShapeChoice("oval", (1.15, 0.95, 1.00)),
 )
 
 
@@ -172,10 +194,31 @@ class ScenarioSpecification:
     bowl_shape: BowlShapeChoice
     ball_xy: tuple[float, float]
     bowl_xy: tuple[float, float]
+    """Bowl centre at the start of the episode (world XY)."""
+    bowl_mass_kg: float = BOWL_MASS
+    bowl_target_xy: tuple[float, float] | None = None
+    """Where the bowl has to be moved before the ball goes in; ``None`` leaves it in place."""
+    bowl_static: bool = False
+    """Bolt the bowl to the desk, as in the original regression scene."""
+
+    def __post_init__(self) -> None:
+        if self.bowl_static and self.bowl_target_xy is not None:
+            raise ValueError("A static bowl cannot be moved to a bowl_target_xy.")
 
     @classmethod
-    def fixed(cls) -> ScenarioSpecification:
-        """Return the original deterministic scenario for regression comparisons."""
+    def fixed(
+        cls, *, move_bowl: bool = False, bowl_static: bool = False
+    ) -> ScenarioSpecification:
+        """Return the deterministic layout.
+
+        ``move_bowl`` selects the bimanual variant: the bowl starts on the
+        robot's left and has a target near the middle of the desk.
+        ``bowl_static`` bolts the bowl down; the bowl is movable otherwise.
+        """
+        bowl_xy, bowl_target_xy = BOWL_CENTER_XY, None
+        if move_bowl:
+            bowl_xy = MOVE_BOWL_START_XY
+            bowl_target_xy = (float(MOVE_BOWL_TARGET_XY[0]), float(MOVE_BOWL_TARGET_XY[1]))
         return cls(
             seed=None,
             sample_attempt=1,
@@ -184,7 +227,85 @@ class ScenarioSpecification:
             bowl_color=BOWL_COLORS[0],
             bowl_shape=BOWL_SHAPES[0],
             ball_xy=(float(BALL_XY[0]), float(BALL_XY[1])),
-            bowl_xy=(float(BOWL_CENTER_XY[0]), float(BOWL_CENTER_XY[1])),
+            bowl_xy=(float(bowl_xy[0]), float(bowl_xy[1])),
+            bowl_target_xy=bowl_target_xy,
+            bowl_static=bowl_static,
+        )
+
+    @classmethod
+    def from_layout(cls, layout: dict[str, Any]) -> ScenarioSpecification:
+        """Build the fixed scenario with placements/values overridden by a layout file.
+
+        Recognised keys: ``ball_xy`` and ``bowl_xy`` (metres, world XY on the
+        desk; ``bowl_xy`` is where the bowl starts), ``bowl_target_xy`` (where
+        the bowl has to be moved; its presence selects the move-the-bowl
+        variant and its defaults), ``ball_mass_kg``, ``bowl_mass_kg``,
+        ``ball_color`` and ``bowl_color`` (names from
+        ``BALL_COLORS``/``BOWL_COLORS``), ``bowl_shape`` (a ``BOWL_SHAPES``
+        name), and ``bowl_static`` (``true`` bolts the bowl down; it is movable
+        otherwise).  Unknown keys are rejected so typos do not pass silently.
+        """
+        known = {
+            "ball_xy",
+            "bowl_xy",
+            "bowl_target_xy",
+            "ball_mass_kg",
+            "bowl_mass_kg",
+            "bowl_static",
+            "ball_color",
+            "bowl_color",
+            "bowl_shape",
+        }
+        unknown = sorted(set(layout) - known - {"comment", "source"})
+        if unknown:
+            raise ValueError(
+                f"Unknown ball_bowl layout keys: {unknown}; expected {sorted(known)}."
+            )
+        base = cls.fixed(move_bowl="bowl_target_xy" in layout)
+
+        def color(table: tuple[ColorChoice, ...], name: str) -> ColorChoice:
+            for choice in table:
+                if choice.name == name:
+                    return choice
+            raise ValueError(
+                f"Unknown color {name!r}; expected one of {[c.name for c in table]}."
+            )
+
+        bowl_shape = base.bowl_shape
+        if "bowl_shape" in layout:
+            matches = [s for s in BOWL_SHAPES if s.name == layout["bowl_shape"]]
+            if not matches:
+                raise ValueError(
+                    f"Unknown bowl_shape {layout['bowl_shape']!r}; expected one of "
+                    f"{[s.name for s in BOWL_SHAPES]}."
+                )
+            bowl_shape = matches[0]
+
+        def xy(key: str, default: tuple[float, float]) -> tuple[float, float]:
+            value = layout.get(key, default)
+            value = np.asarray(value, dtype=float).reshape(-1)
+            if value.shape != (2,):
+                raise ValueError(f"{key} must be [x, y] in metres.")
+            return (float(value[0]), float(value[1]))
+
+        return cls(
+            seed=None,
+            sample_attempt=1,
+            ball_mass_kg=float(layout.get("ball_mass_kg", base.ball_mass_kg)),
+            ball_color=color(BALL_COLORS, layout["ball_color"])
+            if "ball_color" in layout
+            else base.ball_color,
+            bowl_color=color(BOWL_COLORS, layout["bowl_color"])
+            if "bowl_color" in layout
+            else base.bowl_color,
+            bowl_shape=bowl_shape,
+            ball_xy=xy("ball_xy", base.ball_xy),
+            bowl_xy=xy("bowl_xy", base.bowl_xy),
+            bowl_mass_kg=float(layout.get("bowl_mass_kg", base.bowl_mass_kg)),
+            bowl_target_xy=xy("bowl_target_xy", base.bowl_target_xy)
+            if base.bowl_target_xy is not None
+            else None,
+            bowl_static=bool(layout.get("bowl_static", False)),
         )
 
     @property
@@ -195,16 +316,32 @@ class ScenarioSpecification:
         )
 
     @property
+    def bowl_start(self) -> npt.NDArray[np.float64]:
+        # A movable bowl rests one contact threshold above the desk it sits on.
+        clearance = 0.0 if self.bowl_static else CONTACT_THRESHOLD
+        return np.array([*self.bowl_xy, DESK_TOP_Z + clearance], dtype=float)
+
+    @property
+    def delivery_xy(self) -> tuple[float, float]:
+        """Where the bowl is when the ball is delivered: its target, else its start."""
+        return self.bowl_xy if self.bowl_target_xy is None else self.bowl_target_xy
+
+    @property
     def bowl_scale(self) -> npt.NDArray[np.float64]:
         return np.asarray(self.bowl_shape.scale, dtype=float)
 
     @property
     def bowl_outer_radii(self) -> npt.NDArray[np.float64]:
-        return 0.047 * self.bowl_scale[:2]
+        return bowl_asset.OUTER_RADIUS * self.bowl_scale[:2]
+
+    @property
+    def bowl_rim_height(self) -> float:
+        """Rim height above the bowl's base (its local origin sits on the desk)."""
+        return bowl_asset.HEIGHT * float(self.bowl_scale[2])
 
     @property
     def bowl_rim_z(self) -> float:
-        return DESK_TOP_Z + 0.113 * float(self.bowl_scale[2])
+        return DESK_TOP_Z + self.bowl_rim_height
 
     @property
     def pick(self) -> npt.NDArray[np.float64]:
@@ -221,25 +358,54 @@ class ScenarioSpecification:
     @property
     def place(self) -> npt.NDArray[np.float64]:
         release_z = self.bowl_rim_z + BALL_RADIUS + BALL_RELEASE_CLEARANCE
-        return np.array([*self.bowl_xy, release_z], dtype=float)
+        return np.array([*self.delivery_xy, release_z], dtype=float)
 
     @property
     def place_safe(self) -> npt.NDArray[np.float64]:
-        return np.array([*self.bowl_xy, self.place[2] + 0.04], dtype=float)
+        return np.array([*self.delivery_xy, self.place[2] + 0.04], dtype=float)
 
     @property
     def ball_shell_inertia(self) -> float:
         return (2.0 / 3.0) * self.ball_mass_kg * BALL_RADIUS**2
 
-    def contains_ball(self, position: npt.ArrayLike) -> bool:
-        """Use the randomized elliptical rim and height for success validation."""
-        position = np.asarray(position, dtype=float)
-        normalized_xy = (
-            position[:2] - np.asarray(self.bowl_xy)
-        ) / self.bowl_outer_radii
+    def contains_ball(
+        self, ball_position: npt.ArrayLike, bowl_position: npt.ArrayLike | None = None
+    ) -> bool:
+        """Ball inside the elliptical rim of the bowl *as it actually sits*.
+
+        The bowl is dynamic, so pass its measured ``bowl_position``; without
+        one the bowl is assumed to rest where the ball is delivered.
+        """
+        ball = np.asarray(ball_position, dtype=float)
+        bowl = (
+            np.array([*self.delivery_xy, DESK_TOP_Z], dtype=float)
+            if bowl_position is None
+            else np.asarray(bowl_position, dtype=float)
+        )
+        normalized_xy = (ball[:2] - bowl[:2]) / self.bowl_outer_radii
         return bool(
             np.dot(normalized_xy, normalized_xy) < 1.0
-            and position[2] < self.bowl_rim_z + 2.0 * BALL_RADIUS
+            and ball[2] < bowl[2] + self.bowl_rim_height + 2.0 * BALL_RADIUS
+            and ball[2] > bowl[2] - 0.01
+        )
+
+    def bowl_at_target(
+        self,
+        bowl_position: npt.ArrayLike,
+        bowl_quaternion_xyzw: npt.ArrayLike | None = None,
+    ) -> bool:
+        """Bowl centre within tolerance of its target, resting upright on the desk."""
+        if self.bowl_target_xy is None:
+            raise ValueError("This specification has no bowl target.")
+        position = np.asarray(bowl_position, dtype=float)
+        offset = position[:2] - np.asarray(self.bowl_target_xy)
+        if np.linalg.norm(offset) > BOWL_TARGET_TOLERANCE:
+            return False
+        if abs(position[2] - DESK_TOP_Z) > 0.02:
+            return False
+        return (
+            bowl_quaternion_xyzw is None
+            or bowl_tilt_deg(bowl_quaternion_xyzw) <= BOWL_MAX_TILT_DEG
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -259,46 +425,97 @@ class ScenarioSpecification:
                 "scale_xyz": list(self.bowl_shape.scale),
                 "color": self.bowl_color.name,
                 "color_rgb": list(self.bowl_color.rgb),
-                "position_m": [*self.bowl_xy, DESK_TOP_Z],
+                "mass_kg": None if self.bowl_static else self.bowl_mass_kg,
+                "dynamic": not self.bowl_static,
+                "position_m": self.bowl_start.tolist(),
                 "outer_radii_m": self.bowl_outer_radii.tolist(),
+                "rim_height_m": self.bowl_rim_height,
                 "rim_z_m": self.bowl_rim_z,
             },
             "targets": {
                 "pick_m": self.pick.tolist(),
                 "place_m": self.place.tolist(),
+                **(
+                    {}
+                    if self.bowl_target_xy is None
+                    else {
+                        "bowl_target_m": [*self.bowl_target_xy, DESK_TOP_Z],
+                        "bowl_target_tolerance_m": BOWL_TARGET_TOLERANCE,
+                    }
+                ),
             },
         }
 
 
+def bowl_tilt_deg(quaternion_xyzw: npt.ArrayLike) -> float:
+    """Angle between the bowl's local Z axis and world up, in degrees."""
+    x, y, _, _ = np.asarray(quaternion_xyzw, dtype=float)
+    up_z = 1.0 - 2.0 * (x * x + y * y)
+    return float(np.degrees(np.arccos(np.clip(up_z, -1.0, 1.0))))
+
+
 def sample_specification(
-    rng: np.random.Generator, seed: int, attempt: int
+    rng: np.random.Generator, seed: int, attempt: int, *, move_bowl: bool = False
 ) -> ScenarioSpecification:
-    """Sample one candidate while enforcing tabletop and object separation."""
-    bowl_shape = BOWL_SHAPES[int(rng.integers(len(BOWL_SHAPES)))]
-    outer_radii = 0.047 * np.asarray(bowl_shape.scale[:2], dtype=float)
+    """Sample one candidate while enforcing tabletop and object separation.
+
+    ``move_bowl`` samples the bimanual variant: the measured bowl starts in the
+    left arm's band and gets a target in the band both arms reach.
+    """
+    shapes = BOWL_SHAPES[:1] if move_bowl else BOWL_SHAPES
+    bowl_shape = shapes[int(rng.integers(len(shapes)))]
+    outer_radii = bowl_asset.OUTER_RADIUS * np.asarray(
+        bowl_shape.scale[:2], dtype=float
+    )
+    minimum_separation = float(np.max(outer_radii)) + BALL_RADIUS + 0.045
+    bowl_x_range, bowl_y_range = (
+        (MOVE_BOWL_START_X_RANGE, MOVE_BOWL_START_Y_RANGE)
+        if move_bowl
+        else (BOWL_X_RANGE, BOWL_Y_RANGE)
+    )
     for _ in range(128):
         ball_xy = np.array(
             [rng.uniform(*BALL_X_RANGE), rng.uniform(*BALL_Y_RANGE)], dtype=float
         )
         bowl_xy = np.array(
-            [rng.uniform(*BOWL_X_RANGE), rng.uniform(*BOWL_Y_RANGE)], dtype=float
+            [rng.uniform(*bowl_x_range), rng.uniform(*bowl_y_range)], dtype=float
         )
-        minimum_separation = float(np.max(outer_radii)) + BALL_RADIUS + 0.045
-        if np.linalg.norm(ball_xy - bowl_xy) >= minimum_separation:
+        target_xy = None
+        if move_bowl:
+            target_xy = np.array(
+                [
+                    rng.uniform(*MOVE_BOWL_TARGET_X_RANGE),
+                    rng.uniform(*MOVE_BOWL_TARGET_Y_RANGE),
+                ],
+                dtype=float,
+            )
+            if np.linalg.norm(bowl_xy - target_xy) < 0.12:
+                continue
+        # The ball must stay clear of the bowl wherever the ball is delivered.
+        delivery_xy = bowl_xy if target_xy is None else target_xy
+        if np.linalg.norm(ball_xy - delivery_xy) >= minimum_separation:
             break
     else:
         raise RuntimeError("Could not sample separated ball and bowl locations.")
 
     mass_step = int(rng.integers(1, 11))
+    ball_color = BALL_COLORS[int(rng.integers(len(BALL_COLORS)))]
+    bowl_color = BOWL_COLORS[int(rng.integers(len(BOWL_COLORS)))]
+    # Drawn last so a seed keeps the layout and colours it had with a static bowl.
+    bowl_mass_kg = round(float(rng.uniform(*BOWL_MASS_RANGE)), 3)
     return ScenarioSpecification(
         seed=seed,
         sample_attempt=attempt,
         ball_mass_kg=round(mass_step * 0.05, 2),
-        ball_color=BALL_COLORS[int(rng.integers(len(BALL_COLORS)))],
-        bowl_color=BOWL_COLORS[int(rng.integers(len(BOWL_COLORS)))],
+        ball_color=ball_color,
+        bowl_color=bowl_color,
         bowl_shape=bowl_shape,
         ball_xy=(float(ball_xy[0]), float(ball_xy[1])),
         bowl_xy=(float(bowl_xy[0]), float(bowl_xy[1])),
+        bowl_mass_kg=bowl_mass_kg,
+        bowl_target_xy=None
+        if target_xy is None
+        else (float(target_xy[0]), float(target_xy[1])),
     )
 
 
@@ -310,30 +527,6 @@ class Workcell:
     desk_actors: list[physics.Actor]
     bowl: physics.Actor
     ball: physics.Actor
-
-
-@dataclass
-class PlannedMotion:
-    """OpenArm reference trajectory produced by the included robot planner."""
-
-    home_to_pre_pick: npt.NDArray[np.float64]
-    pre_pick_to_pick: npt.NDArray[np.float64]
-    pick_to_lift: npt.NDArray[np.float64]
-    lift_to_place_safe: npt.NDArray[np.float64]
-    place_safe_to_place: npt.NDArray[np.float64]
-    place_to_retreat: npt.NDArray[np.float64]
-    retreat_to_home: npt.NDArray[np.float64]
-
-    def segments(self) -> Iterable[npt.NDArray[np.float64]]:
-        return (
-            self.home_to_pre_pick,
-            self.pre_pick_to_pick,
-            self.pick_to_lift,
-            self.lift_to_place_safe,
-            self.place_safe_to_place,
-            self.place_to_retreat,
-            self.retreat_to_home,
-        )
 
 
 def contact_params(friction: float) -> physics.ContactParams:
@@ -348,13 +541,6 @@ def contact_params(friction: float) -> physics.ContactParams:
     )
 
 
-def create_full_robot(
-    scene: physics.Scene, context: robotics.RoboticsContext
-) -> BotInfo:
-    """Compatibility name for the scenario's selected OpenArm embodiment."""
-    return build_openarm_v2(scene, context, contact_params)
-
-
 def _load_shape(asset: str, scale: npt.ArrayLike) -> physics.ShapeHandle:
     return physics.load_shape_from_file(
         file_path=str(resolve_asset(asset)), bake_scale=np.asarray(scale, dtype=float)
@@ -365,7 +551,7 @@ def create_workcell(
     scene: physics.Scene,
     specification: ScenarioSpecification | None = None,
 ) -> Workcell:
-    """Build the wooden desk and the specified bowl and dynamic ball."""
+    """Build the wooden desk, the bowl (dynamic unless ``bowl_static``), and the dynamic ball."""
     specification = specification or ScenarioSpecification.fixed()
     block_asset = "prefabs/box_and_blocks/collision/block.mochi.h5"
     # The source block is a 25 mm cube with its local origin at a lower corner.
@@ -395,19 +581,26 @@ def create_workcell(
             desk_actors.append(leg)
     physics.release_shape(leg_shape)
 
-    bowl_shape = _load_shape(
-        "prefabs/paper_cups/collision/paper_cup.mochi.h5",
-        specification.bowl_scale,
+    bowl_vertices, bowl_faces = bowl_asset.mesh(specification.bowl_scale)
+    bowl_shape = physics.create_tri_mesh_shape(
+        bowl_vertices.ravel(), bowl_faces.ravel().astype(np.int32)
+    )
+    bowl_body: dict[str, Any] = (
+        {"is_static": True}
+        if specification.bowl_static
+        else {
+            "collider_type": physics.ColliderType.SDF,
+            "is_static": False,
+            "mass": specification.bowl_mass_kg,
+        }
     )
     bowl = scene.create_rigid_actor(
         name="gray_bowl",
         layer="bowl",
         shape=bowl_shape,
-        is_static=True,
         contact=contact_params(CERAMIC_FRICTION),
-        world_from_local=physics.TransformRT(
-            translation=[*specification.bowl_xy, DESK_TOP_Z]
-        ),
+        world_from_local=physics.TransformRT(translation=specification.bowl_start),
+        **bowl_body,
     )
     physics.release_shape(bowl_shape)
 
@@ -436,112 +629,6 @@ def create_workcell(
     return Workcell(desk_actors=desk_actors, bowl=bowl, ball=ball)
 
 
-class RightArmKinematics(OpenArmKinematics):
-    """Scenario adapter supplying ball-and-bowl obstacles to OpenArm IK."""
-
-    def __init__(
-        self,
-        context: robotics.RoboticsContext,
-        reference: BotInfo,
-        specification: ScenarioSpecification | None = None,
-    ) -> None:
-        specification = specification or ScenarioSpecification.fixed()
-        super().__init__(
-            context,
-            reference,
-            contact_params,
-            BallBowlCollisionModel(specification, DESK_MIN, DESK_SIZE),
-        )
-
-
-def _cartesian_ik_reference(
-    kinematics: ArmKinematics,
-    start_pose: npt.ArrayLike,
-    start_position: npt.ArrayLike,
-    goal_position: npt.ArrayLike,
-    num_knots: int,
-) -> npt.NDArray[np.float64]:
-    """Follow a Cartesian line with continuation IK to stay on one joint branch."""
-    start_pose = np.asarray(start_pose, dtype=float)
-    positions = np.linspace(start_position, goal_position, num_knots, dtype=float)
-    path = [start_pose]
-    seed = start_pose
-    for position in positions[1:]:
-        seed = kinematics.solve(position, seed)
-        path.append(seed)
-    return np.asarray(path, dtype=float)
-
-
-def plan_motion(
-    kinematics: ArmKinematics,
-    reference: BotInfo | EmbodimentModel,
-    specification: ScenarioSpecification | None = None,
-    *,
-    optimize_trajectory: bool = True,
-) -> PlannedMotion:
-    """Build and optimize the included OpenArm reference trajectory."""
-    specification = specification or ScenarioSpecification.fixed()
-    home = reference.default_pose[reference.right_arm_dofs]
-    if (
-        reference.approach_direction_world is None
-        or reference.pregrasp_distance is None
-    ):
-        raise ValueError("The OpenArm reference requires pregrasp metadata.")
-    approach = np.asarray(reference.approach_direction_world, dtype=float)
-    pre_pick_position = specification.pick - reference.pregrasp_distance * approach
-    pre_pick = kinematics.solve(pre_pick_position, home)
-    home_to_pre_pick = np.linspace(home, pre_pick, 12, dtype=float)
-    pre_pick_to_pick = _cartesian_ik_reference(
-        kinematics,
-        pre_pick,
-        pre_pick_position,
-        specification.pick,
-        8,
-    )
-    pick_to_lift = _cartesian_ik_reference(
-        kinematics,
-        pre_pick_to_pick[-1],
-        specification.pick,
-        specification.pick_lift,
-        8,
-    )
-    lift_to_place_safe = _cartesian_ik_reference(
-        kinematics,
-        pick_to_lift[-1],
-        specification.pick_lift,
-        specification.place_safe,
-        16,
-    )
-    place_safe_to_place = _cartesian_ik_reference(
-        kinematics,
-        lift_to_place_safe[-1],
-        specification.place_safe,
-        specification.place,
-        7,
-    )
-    place_to_retreat = place_safe_to_place[::-1].copy()
-    retreat_to_home = np.linspace(place_to_retreat[-1], home, 12, dtype=float)
-    paths = (
-        home_to_pre_pick,
-        pre_pick_to_pick,
-        pick_to_lift,
-        lift_to_place_safe,
-        place_safe_to_place,
-        place_to_retreat,
-        retreat_to_home,
-    )
-
-    if not optimize_trajectory:
-        print("Trajectory optimization disabled: using direct Cartesian references.")
-        return PlannedMotion(*paths)
-
-    print("TrajOpt-style collision-aware trajectory optimization:")
-    optimizer = TrajOptTrajectoryOptimizer(kinematics)
-    return PlannedMotion(
-        *(optimizer.optimize(path, max_iterations=28) for path in paths)
-    )
-
-
 @dataclass(frozen=True)
 class EmbodimentSpec:
     """How to build one embodiment into the shared workcell, and who drives it."""
@@ -553,60 +640,40 @@ class EmbodimentSpec:
     build: Callable[[physics.Scene, robotics.RoboticsContext], EmbodimentModel]
     destroy: Callable[[physics.Scene, EmbodimentModel], None]
     kinematics: Callable[
-        [robotics.RoboticsContext, EmbodimentModel, ScenarioSpecification], ArmKinematics
+        [robotics.RoboticsContext, EmbodimentModel, ScenarioSpecification],
+        ArmKinematics,
     ]
     policy: str
     """``"module:Class"`` implementing :class:`episode.EpisodePolicy`."""
+    left_kinematics: (
+        Callable[
+            [robotics.RoboticsContext, EmbodimentModel, ScenarioSpecification],
+            ArmKinematics,
+        ]
+        | None
+    ) = None
+    """Second kinematic twin of a two-armed embodiment."""
+    move_bowl_policy: str | None = None
+    """Policy for a specification with a ``bowl_target_xy``; needs two arms."""
+
+    def policy_for(self, specification: ScenarioSpecification) -> str:
+        """The registered policy that solves ``specification`` with this embodiment."""
+        if specification.bowl_target_xy is None:
+            return self.policy
+        if self.move_bowl_policy is None:
+            raise ValueError(
+                f"Embodiment {self.embodiment_id!r} has no policy that moves the bowl; "
+                "drop bowl_target_xy or use a two-armed embodiment."
+            )
+        return self.move_bowl_policy
 
 
-def _openarm_kinematics(
-    context: robotics.RoboticsContext,
-    info: EmbodimentModel,
-    specification: ScenarioSpecification,
-) -> ArmKinematics:
-    return RightArmKinematics(context, info, specification)
+def embodiment_spec(embodiment_id: str) -> EmbodimentSpec:
+    """Look an embodiment up in :data:`embodiments.EMBODIMENTS`."""
+    # Imported here: every embodiment subpackage imports this module.
+    from .embodiments import EMBODIMENTS
 
-
-def _human_kinematics(
-    context: robotics.RoboticsContext,
-    info: EmbodimentModel,
-    specification: ScenarioSpecification,
-) -> ArmKinematics:
-    return HumanArmKinematics(
-        context,
-        info,
-        contact_params,
-        BallBowlCollisionModel(specification, DESK_MIN, DESK_SIZE),
-    )
-
-
-EMBODIMENTS: dict[str, EmbodimentSpec] = {
-    "openarm_v2": EmbodimentSpec(
-        embodiment_id="openarm_v2",
-        scene_name="OpenArm v2: randomized ball into bowl",
-        render_manifest=(
-            "/scenarios/ball_bowl/studio/scene/openarm_ball_bowl_studio.mochi_scene"
-        ),
-        solver_max_iter=8,
-        build=create_full_robot,
-        destroy=destroy_openarm_v2,
-        kinematics=_openarm_kinematics,
-        policy="scenarios.ball_bowl.openarm_policy:OpenArmPolicy",
-    ),
-    "human_right_hand": EmbodimentSpec(
-        embodiment_id="human_right_hand",
-        scene_name="Human right hand: randomized ball into bowl",
-        render_manifest=(
-            "/scenarios/ball_bowl/studio/human_scene/human_ball_bowl_studio.mochi_scene"
-        ),
-        solver_max_iter=10,
-        build=lambda scene, context: build_human_right_arm(scene, context, contact_params),
-        destroy=destroy_human_right_arm,
-        kinematics=_human_kinematics,
-        policy="scenarios.ball_bowl.human_project:HumanPolicy",
-    ),
-}
-DEFAULT_EMBODIMENT = "openarm_v2"
+    return EMBODIMENTS[embodiment_id]
 
 
 @dataclass
@@ -619,6 +686,7 @@ class BallBowlScenario:
     workcell: Workcell
     kinematics: ArmKinematics
     embodiment: EmbodimentSpec
+    left_kinematics: ArmKinematics | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -638,8 +706,8 @@ class BallBowlScenario:
         embodiment_id: str = DEFAULT_EMBODIMENT,
         specification: ScenarioSpecification | None = None,
     ) -> BallBowlScenario:
-        """Construct one specified scene: embodiment, ground, workcell, kinematic twin."""
-        embodiment = EMBODIMENTS[embodiment_id]
+        """Construct one specified scene: embodiment, ground, workcell, kinematic twins."""
+        embodiment = embodiment_spec(embodiment_id)
         specification = specification or ScenarioSpecification.fixed()
         scene = physics.create_scene(embodiment.scene_name)
         scene.set_gravity([0.0, 0.0, -9.80665])
@@ -649,9 +717,12 @@ class BallBowlScenario:
         scene.set_solver_params(solver)
         info: EmbodimentModel | None = None
         kinematics: ArmKinematics | None = None
+        left_kinematics: ArmKinematics | None = None
         try:
             info = embodiment.build(scene, context)
-            ground_shape = physics.create_plane_shape(normal=[0.0, 0.0, 1.0], distance=0.0)
+            ground_shape = physics.create_plane_shape(
+                normal=[0.0, 0.0, 1.0], distance=0.0
+            )
             scene.create_rigid_actor(
                 name="ground",
                 layer="ground",
@@ -662,8 +733,22 @@ class BallBowlScenario:
             physics.release_shape(ground_shape)
             workcell = create_workcell(scene, specification)
             kinematics = embodiment.kinematics(context, info, specification)
-            return cls(scene, specification, info, workcell, kinematics, embodiment)
+            if embodiment.left_kinematics is not None:
+                left_kinematics = embodiment.left_kinematics(
+                    context, info, specification
+                )
+            return cls(
+                scene,
+                specification,
+                info,
+                workcell,
+                kinematics,
+                embodiment,
+                left_kinematics,
+            )
         except Exception:
+            if left_kinematics is not None:
+                left_kinematics.close()
             if kinematics is not None:
                 kinematics.close()
             if info is not None:
@@ -679,8 +764,11 @@ class BallBowlScenario:
         embodiment_id: str = DEFAULT_EMBODIMENT,
         *,
         planner: Callable[[BallBowlScenario], Any] | None = None,
+        move_bowl: bool = False,
     ) -> tuple[BallBowlScenario, Any]:
         """Sample a task, build it, and plan it; resample while planning fails.
+
+        ``move_bowl`` samples the variant whose bowl has to be moved to a target.
 
         ``planner`` receives the built scenario and returns the planned policy;
         it raises :class:`episode.PlanningError` for an infeasible sample, in
@@ -692,7 +780,9 @@ class BallBowlScenario:
         rng = np.random.default_rng(seed)
         last_error: Exception | None = None
         for attempt in range(1, MAX_RANDOMIZATION_ATTEMPTS + 1):
-            specification = sample_specification(rng, seed, attempt)
+            specification = sample_specification(
+                rng, seed, attempt, move_bowl=move_bowl
+            )
             scenario = cls.build(context, embodiment_id, specification)
             if planner is None:
                 return scenario, None
@@ -701,7 +791,9 @@ class BallBowlScenario:
             except PlanningError as error:
                 last_error = error
                 scenario.close()
-                print(f"Random sample {attempt} was not plannable ({error}); resampling.")
+                print(
+                    f"Random sample {attempt} was not plannable ({error}); resampling."
+                )
             except Exception:
                 scenario.close()
                 raise
@@ -714,85 +806,9 @@ class BallBowlScenario:
         """Release scenario-owned planning and embodiment resources once."""
         if self._closed:
             return
+        if self.left_kinematics is not None:
+            self.left_kinematics.close()
         self.kinematics.close()
         self.embodiment.destroy(self.scene, self.bot_info)
         physics.destroy_scene(self.scene)
         self._closed = True
-
-
-class OpenArmBallBowlScenario(BallBowlScenario):
-    """Compatibility API retaining the original eagerly planned OpenArm scenario."""
-
-    plan: PlannedMotion
-
-    @classmethod
-    def build(  # type: ignore[override]
-        cls,
-        context: robotics.RoboticsContext,
-        specification: ScenarioSpecification | None = None,
-        *,
-        optimize_trajectory: bool = True,
-    ) -> OpenArmBallBowlScenario:
-        scenario = super().build(context, "openarm_v2", specification)
-        try:
-            scenario.plan = plan_motion(
-                scenario.kinematics,
-                scenario.bot_info,
-                scenario.specification,
-                optimize_trajectory=optimize_trajectory,
-            )
-            return scenario
-        except Exception:
-            scenario.close()
-            raise
-
-    @classmethod
-    def build_randomized(  # type: ignore[override]
-        cls,
-        context: robotics.RoboticsContext,
-        seed: int,
-        *,
-        optimize_trajectory: bool = True,
-    ) -> OpenArmBallBowlScenario:
-        rng = np.random.default_rng(seed)
-        last_error: Exception | None = None
-        for attempt in range(1, MAX_RANDOMIZATION_ATTEMPTS + 1):
-            specification = sample_specification(rng, seed, attempt)
-            try:
-                return cls.build(
-                    context,
-                    specification,
-                    optimize_trajectory=optimize_trajectory,
-                )
-            except RuntimeError as error:
-                last_error = error
-                print(f"Random sample {attempt} was not plannable ({error}); resampling.")
-        raise RuntimeError(
-            "Could not plan a randomized scenario after "
-            f"{MAX_RANDOMIZATION_ATTEMPTS} attempts for seed {seed}."
-        ) from last_error
-
-
-class HumanBallBowlScenario(BallBowlScenario):
-    """Compatibility API for building the original unplanned human scenario."""
-
-    @classmethod
-    def build(  # type: ignore[override]
-        cls,
-        context: robotics.RoboticsContext,
-        specification: ScenarioSpecification | None = None,
-    ) -> HumanBallBowlScenario:
-        return super().build(context, "human_right_hand", specification)
-
-    @classmethod
-    def build_randomized(  # type: ignore[override]
-        cls,
-        context: robotics.RoboticsContext,
-        seed: int,
-    ) -> HumanBallBowlScenario:
-        specification = sample_specification(
-            np.random.default_rng(seed),
-            seed,
-            attempt=1,
-        )
-        return cls.build(context, specification)

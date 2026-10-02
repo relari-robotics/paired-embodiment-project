@@ -8,15 +8,24 @@ from superdex import physics
 
 
 class BallBowlCollisionModel:
-    """Evaluate embodiment-provided collision proxies against the workcell."""
+    """Evaluate embodiment-provided collision proxies against the workcell.
+
+    The bowl rim is an obstacle where the ball is delivered
+    (``specification.delivery_xy``).  ``avoid_bowl=False`` leaves only the desk
+    and self-collision: an arm that has to touch the bowl -- the one that drags
+    it, or a teleoperated arm -- cannot also be planned around it.
+    """
 
     def __init__(
         self,
         specification: object,
         desk_min: npt.ArrayLike,
         desk_size: npt.ArrayLike,
+        *,
+        avoid_bowl: bool = True,
     ) -> None:
         self.specification = specification
+        self.avoid_bowl = avoid_bowl
         self.desk_min = np.asarray(desk_min, dtype=float)
         self.desk_max = self.desk_min + np.asarray(desk_size, dtype=float)
 
@@ -52,9 +61,12 @@ class BallBowlCollisionModel:
         ]
 
         spec = self.specification
-        bowl_xy = np.asarray(spec.bowl_xy, dtype=float)
+        bowl_xy = np.asarray(spec.delivery_xy, dtype=float)
         rim_radius = 0.010
-        for theta in np.linspace(0.0, 2.0 * np.pi, 20, endpoint=False):
+        rim_angles = (
+            np.linspace(0.0, 2.0 * np.pi, 20, endpoint=False) if self.avoid_bowl else ()
+        )
+        for theta in rim_angles:
             rim = np.array(
                 [
                     bowl_xy[0] + spec.bowl_outer_radii[0] * np.cos(theta),

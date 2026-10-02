@@ -1,0 +1,1086 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Embodiment-neutral simulator and CLI for the sponge-and-plate scenario.
+
+The runner builds the scene for the selected embodiment, asks that
+embodiment's :class:`~scenarios.sponge_plate.episode.EpisodePolicy` to plan,
+and executes the episode through the shared pipeline: compliant pose
+controller, physics stepping, optional viewer, transform/telemetry/phase
+recording, the plate cleanliness map, and export.  Success means the sponge
+wiped at least ``CLEAN_SUCCESS_COVERAGE`` of the dish floor under pressure and
+was put back on the desk.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import secrets
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+
+import numpy as np
+import numpy.typing as npt
+from superdex import physics, robotics
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from scenarios.ball_bowl.cameras import camera_payloads
+from superdex_scenarios.recording import PhaseLog, TelemetryRecorder, TransformRecorder
+from superdex_scenarios.replay.cli import (
+    add_replay_arguments,
+    add_route_curves,
+    split_routes,
+    load_layout,
+    make_replay_policy,
+    park_objects,
+    validate_replay_arguments,
+    write_result,
+)
+from superdex_scenarios.simulation import KinematicExecutor, PoseExecutor, create_pose_controller
+
+if __package__:
+    from . import scenario as task
+    from .episode import TASK_PHASES, EpisodePolicy, PolicyOptions, load_policy_class
+else:
+    from scenarios.sponge_plate import scenario as task
+    from scenarios.sponge_plate.episode import (
+        TASK_PHASES,
+        EpisodePolicy,
+        PolicyOptions,
+        load_policy_class,
+    )
+
+NP_REAL = np.float64 if physics.uses_double_precision() else np.float32
+
+
+def make_policy(scenario: task.SpongePlateScenario, options: PolicyOptions) -> EpisodePolicy:
+    """Instantiate the registered policy for the scenario's embodiment."""
+    policy_class = load_policy_class(scenario.embodiment.policy)
+    return policy_class(scenario, options)
+
+
+class CleanlinessTracker:
+    """Feed sponge-to-plate contact samples into the :class:`CleanlinessMap` every step."""
+
+    def __init__(self, scenario: task.SpongePlateScenario) -> None:
+        self.scene = scenario.scene
+        self.sponge = scenario.workcell.sponge
+        self.plate_handle = scenario.workcell.plate.get_handle()
+        self.map = task.CleanlinessMap(scenario.specification)
+        self._query = self.sponge.register_query(physics.QueryType.CONTACT_POINTS)
+        self.plate_normal_force = 0.0
+        self.peak_plate_normal_force = 0.0
+
+    def record_sample(self, step: int, _target_pose: npt.ArrayLike) -> None:
+        positions, forces, speeds = [], [], []
+        for point in self.sponge.get_contact_points_world():
+            if point.actor_b != self.plate_handle and point.actor_a != self.plate_handle:
+                continue
+            force = np.asarray(point.force, dtype=float)
+            normal = np.asarray(point.normal, dtype=float)
+            normal_force = abs(float(np.dot(force, normal)))
+            velocity = np.asarray(point.point_velocity_a, dtype=float)
+            tangential = velocity - np.dot(velocity, normal) * normal
+            positions.append(np.asarray(point.pos_b, dtype=float))
+            forces.append(normal_force)
+            speeds.append(float(np.linalg.norm(tangential)))
+        self.plate_normal_force = float(np.sum(forces)) if forces else 0.0
+        self.peak_plate_normal_force = max(self.peak_plate_normal_force, self.plate_normal_force)
+        self.map.update(
+            step,
+            np.asarray(positions, dtype=float).reshape(-1, 3),
+            np.asarray(forces, dtype=float),
+            np.asarray(speeds, dtype=float),
+        )
+
+    def close(self) -> None:
+        if self._query is not None:
+            self.sponge.cancel_query(self._query)
+            self._query = None
+
+
+class EpisodeRunner:
+    """Shared execution helpers a policy uses to drive one episode."""
+
+    def __init__(
+        self,
+        scenario: task.SpongePlateScenario,
+        controller: robotics.ControllerBase | None,
+        controller_target: robotics.ControllerMochiArticulatedPoseTarget | None,
+        viewer: object | None,
+        real_time: bool = False,
+        allow_failed_grasp: bool = False,
+        frame_callback=None,
+        step_callback=None,
+        phase_sequence: tuple[str, ...] | None = None,
+        kinematic: bool = False,
+    ) -> None:
+        self.scenario = scenario
+        self.scene = scenario.scene
+        self.info = scenario.bot_info
+        self.workcell = scenario.workcell
+        self.allow_failed_grasp = allow_failed_grasp
+        self.objects_parked = False
+        self.cleanliness = CleanlinessTracker(scenario)
+
+        def on_step(step: int, target_pose: npt.NDArray[np.float64]) -> None:
+            self.cleanliness.record_sample(step, target_pose)
+            if step_callback is not None:
+                step_callback(step, target_pose)
+
+        if kinematic:
+            self.executor: PoseExecutor = KinematicExecutor(
+                self.scene,
+                self.info.actor,
+                task.TIME_STEP,
+                task.RENDER_EVERY_STEPS,
+                viewer=viewer,
+                real_time=real_time,
+                frame_callback=frame_callback,
+                step_callback=on_step,
+            )
+        else:
+            assert controller is not None and controller_target is not None
+            self.executor = PoseExecutor(
+                self.scene,
+                controller,
+                controller_target,
+                task.TIME_STEP,
+                task.RENDER_EVERY_STEPS,
+                viewer=viewer,
+                real_time=real_time,
+                frame_callback=frame_callback,
+                step_callback=on_step,
+            )
+        self.ee = self.info.link_actor(self.scene, f"/{self.info.end_effector_link}")
+        self.phases = PhaseLog(
+            self.info.embodiment_id, self._phase_sample, phase_sequence or TASK_PHASES
+        )
+
+    # -- state queries ----------------------------------------------------
+
+    def sponge_position(self) -> npt.NDArray[np.float64]:
+        return task.sponge_position(self.workcell.sponge)
+
+    def sponge_bounds(self) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+        bounds = self.workcell.sponge.get_aabb_world()
+        return np.asarray(bounds.min, dtype=float), np.asarray(bounds.max, dtype=float)
+
+    def grasp_point_pose(self) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+        transform = self.ee.get_root_transform() * physics.TransformRT(
+            translation=self.info.grasp_point_local
+        )
+        rotation = transform.rotation
+        quaternion = np.array(
+            [rotation[0], rotation[1], rotation[2], rotation[3]], dtype=float
+        )
+        return np.asarray(transform.translation, dtype=float), quaternion
+
+    def measured_pose(self) -> npt.NDArray[np.float64]:
+        pose = physics.DynamicArrayReal(self.info.actor.get_num_dofs())
+        self.info.actor.get_articulated_pose(pose)
+        return np.asarray(pose, dtype=float)
+
+    def _phase_sample(self):
+        position, quaternion = self.grasp_point_pose()
+        step = self.executor.step_count
+        return step, step * task.TIME_STEP, position, quaternion, self.sponge_position()
+
+    @property
+    def coverage(self) -> float:
+        return self.cleanliness.map.coverage
+
+    # -- phase bookkeeping -------------------------------------------------
+
+    def phase(self, name: str) -> None:
+        self.phases.begin(name)
+        if os.environ.get("SUPERDEX_PHASE_DEBUG"):
+            sample = self.phases.records[-1].start
+            print(
+                f"  phase {name} @ {sample.time_s:.2f}s: grasp point "
+                f"{np.round(sample.grasp_point_world_m, 3).tolist()}, sponge "
+                f"{np.round(sample.object_position_m, 3).tolist()}, "
+                f"coverage {self.coverage:.2f}"
+            )
+
+    # -- motion helpers ----------------------------------------------------
+
+    def _target_pose(self, arm_pose: npt.ArrayLike, hand: str | npt.ArrayLike):
+        return self.info.target_pose(arm_pose, hand)
+
+    def follow(
+        self,
+        path: npt.NDArray[np.float64],
+        duration: float,
+        hand_start: str | npt.ArrayLike,
+        hand_end: str | npt.ArrayLike | None = None,
+    ) -> bool:
+        start = (
+            self.info.hand_poses[hand_start]
+            if isinstance(hand_start, str)
+            else np.asarray(hand_start, dtype=float)
+        )
+        if hand_end is None:
+            end = start
+        elif isinstance(hand_end, str):
+            end = self.info.hand_poses[hand_end]
+        else:
+            end = np.asarray(hand_end, dtype=float)
+        fractions = np.linspace(0.0, 1.0, len(path))
+        full_path = np.vstack(
+            [
+                self._target_pose(arm, (1.0 - fraction) * start + fraction * end)
+                for arm, fraction in zip(path, fractions)
+            ]
+        )
+        return self.executor.follow(full_path, duration)
+
+    def hold(self, arm_pose: npt.ArrayLike, hand: str | npt.ArrayLike, duration: float) -> bool:
+        return self.executor.hold(self._target_pose(arm_pose, hand), duration)
+
+    def hold_pose(self, pose: npt.ArrayLike, duration: float) -> bool:
+        return self.executor.hold(pose, duration)
+
+    # -- task checks -------------------------------------------------------
+
+    def print_tracking_error(self, planned_arm: npt.ArrayLike) -> None:
+        actual_arm = self.measured_pose()[self.info.arm_dofs]
+        print(
+            "  arm tracking error: "
+            f"{np.round(actual_arm - np.asarray(planned_arm, dtype=float), 3).tolist()}"
+        )
+
+    def check_grasp_alignment(self) -> None:
+        """Refuse to close when the grasp point is not on the sponge's upper half."""
+        target = self.sponge_position() + np.array([0.0, 0.0, task.GRASP_UP])
+        grasp_position, _ = self.grasp_point_pose()
+        print(
+            "  grasp: sponge target/grasp point = "
+            f"{np.round(target, 3).tolist()} / {np.round(grasp_position, 3).tolist()}"
+        )
+        grasp_error = float(np.linalg.norm(target - grasp_position))
+        if self.info.grasp_tolerance_m is None:
+            raise ValueError("The embodiment must define grasp_tolerance_m.")
+        if grasp_error > self.info.grasp_tolerance_m:
+            raise RuntimeError(
+                f"Grasp point missed the sponge by {grasp_error:.3f} m; refusing to close."
+            )
+
+    def verify_physical_grasp(self) -> None:
+        """Prove that contact alone lifted the sponge off the desk."""
+        low, high = self.sponge_bounds()
+        minimum_lifted_z = task.DESK_TOP_Z + 0.05
+        if low[2] < minimum_lifted_z:
+            message = (
+                "Contact-only grasp failed to lift the sponge; "
+                f"sponge bottom z={low[2]:.3f} m."
+            )
+            if not self.allow_failed_grasp:
+                raise RuntimeError(message)
+            print(f"  WARNING: {message} Continuing diagnostic episode.")
+            return
+        print(
+            f"  physical grasp verified: sponge at {np.round(self.sponge_position(), 3).tolist()}, "
+            f"height {1000 * (high[2] - low[2]):.0f} mm"
+        )
+        self.phases.event("grasp_verified")
+
+    def verify_press(self) -> None:
+        """Report the normal force the sponge exerts on the plate after lowering."""
+        force = self.cleanliness.plate_normal_force
+        low, _ = self.sponge_bounds()
+        print(
+            f"  press: sponge-on-plate normal force {force:.2f} N, sponge bottom "
+            f"{1000 * (low[2] - self.scenario.specification.dish_floor_z):+.1f} mm from dish floor"
+        )
+        if force < 0.5:
+            message = f"Sponge is not pressed onto the plate ({force:.2f} N)."
+            if not self.allow_failed_grasp:
+                raise RuntimeError(message)
+            print(f"  WARNING: {message} Continuing diagnostic episode.")
+            return
+        self.phases.event("press_verified", normal_force_n=force)
+
+    def print_wipe_progress(self, stroke: int) -> None:
+        print(
+            f"  wipe stroke {stroke}: coverage {100 * self.coverage:.0f}%, plate normal "
+            f"force {self.cleanliness.plate_normal_force:.2f} N, sponge at "
+            f"{np.round(self.sponge_position(), 3).tolist()}"
+        )
+        self.phases.event("wipe_stroke", stroke=stroke, coverage=self.coverage)
+
+    def print_release_position(self) -> None:
+        print(
+            "  physical release begins: sponge at "
+            f"{np.round(self.sponge_position(), 3).tolist()}"
+        )
+
+    # -- episode control ---------------------------------------------------
+
+    def reset_episode(self, home_pose: npt.ArrayLike) -> None:
+        """Restore embodiment and sponge state for an exact replay."""
+        self.info.actor.set_articulated_pose_from_joints(
+            np.asarray(home_pose, dtype=NP_REAL)
+        )
+        self.info.actor.set_articulated_joint_velocities(
+            np.zeros(self.info.actor.get_num_dofs(), dtype=NP_REAL)
+        )
+        if self.objects_parked:
+            return
+        sponge = self.workcell.sponge
+        nodes, _ = task.sponge_tet_mesh()
+        sponge.set_root_transform(
+            physics.TransformRT(translation=self.scenario.specification.sponge_start)
+        )
+        sponge.set_node_positions_local(np.asarray(nodes, dtype=NP_REAL).ravel())
+        sponge.set_node_velocities_local(np.zeros(nodes.size, dtype=NP_REAL))
+        self.cleanliness.map = task.CleanlinessMap(self.scenario.specification)
+
+    def park_objects(self) -> None:
+        """Move the plate and sponge off the desk for an object-free run."""
+        from superdex_scenarios.replay.cli import PARKED_OBJECT_POSITION
+
+        park_objects([self.workcell.plate])
+        sponge = self.workcell.sponge
+        nodes, _ = task.sponge_tet_mesh()
+        sponge.set_root_transform(
+            physics.TransformRT(
+                translation=PARKED_OBJECT_POSITION + [0.5, 0.0, 0.5 * task.SPONGE_SIZE[2]]
+            )
+        )
+        sponge.set_node_positions_local(np.asarray(nodes, dtype=NP_REAL).ravel())
+        sponge.set_node_velocities_local(np.zeros(nodes.size, dtype=NP_REAL))
+        self.objects_parked = True
+
+    def run(self, policy: EpisodePolicy) -> bool:
+        completed = policy.run(self)
+        self.phases.finish_episode(completed)
+        return completed
+
+    def close(self) -> None:
+        self.cleanliness.close()
+
+
+DEFAULT_LOOK_FROM = (0.42, -0.62, 0.66)
+DEFAULT_LOOK_AT = (-0.04, -0.06, 0.40)
+CAMERA_PRESETS: dict[str, tuple[tuple[float, float, float], tuple[float, float, float]]] = {
+    "workcell": (DEFAULT_LOOK_FROM, DEFAULT_LOOK_AT),
+    "front": ((1.35, 0.0, 0.82), (-0.03, 0.0, 0.43)),
+    "top": ((-0.03, 0.0, 1.75), (-0.03, 0.0, 0.40)),
+    "plate": ((0.22, -0.34, 0.52), (-0.05, 0.0, 0.40)),
+    "sponge": ((0.28, -0.42, 0.50), (0.0, -0.20, 0.41)),
+    "side": ((-0.05, -0.55, 0.47), (-0.05, 0.0, 0.41)),
+}
+
+
+def create_viewer(
+    scenario: task.SpongePlateScenario,
+    points: npt.NDArray[np.float64],
+    *,
+    show_trajectory: bool = True,
+    look_from: tuple[float, float, float] = DEFAULT_LOOK_FROM,
+    look_at: tuple[float, float, float] = DEFAULT_LOOK_AT,
+    size: tuple[int, int] | None = None,
+    offscreen: bool = False,
+):
+    from superdex.physics.utils.coordinate_systems import CoordinateSystem
+    from superdex.physics.viewer import Viewer, ViewerCfg
+
+    viewer = Viewer(
+        ViewerCfg(
+            coordinate_system=CoordinateSystem(right="-Y", up="+Z", forward="+X"),
+            start_paused=False,
+            size=size,
+            offscreen=offscreen,
+        )
+    )
+    viewer.set_scene(scenario.scene)
+    hidden_links = scenario.bot_info.hidden_render_link_names
+    if hidden_links:
+        viewer.set_excluded_actors([f"*{name}" for name in sorted(hidden_links)])
+    viewer.set_camera_view(look_from=list(look_from), look_at=list(look_at))
+    if show_trajectory and len(points) > 1:
+        add_route_curves(viewer, points)
+    viewer.render()
+    for actor, color in (
+        *((actor, task.WOOD_COLOR) for actor in scenario.workcell.desk_actors),
+        (scenario.workcell.plate, task.PLATE_COLOR),
+        (scenario.workcell.sponge, scenario.specification.sponge_color.rgb),
+    ):
+        renderer = viewer.get_actor_renderer(actor)
+        if renderer is not None and hasattr(renderer, "set_front_face_color"):
+            renderer.set_front_face_color(color)
+    return viewer
+
+
+class FrameSaver:
+    """Save numbered viewer screenshots while an interactive episode plays."""
+
+    def __init__(self, directory: Path, every: int) -> None:
+        self.directory = directory
+        self.every = max(1, every)
+        self.count = 0
+        self.saved = 0
+        directory.mkdir(parents=True, exist_ok=True)
+
+    def __call__(self) -> None:
+        self.count += 1
+        if self.count % self.every:
+            return
+        import polyscope as ps
+
+        ps.screenshot(
+            str(self.directory / f"frame_{self.saved:05d}.png"),
+            transparent_bg=False,
+            include_UI=False,
+        )
+        self.saved += 1
+
+
+class VideoWriter:
+    """Encode offscreen viewer frames to an MP4 through ffmpeg as the episode plays.
+
+    Wraps the viewer so :class:`PoseExecutor` keeps calling ``render()`` and
+    ``user_requested_close()`` unchanged; every ``stride``-th rendered frame is
+    piped to ffmpeg as raw RGBA.
+    """
+
+    def __init__(self, viewer, path: Path, *, fps: float, stride: int, size: tuple[int, int]) -> None:
+        import subprocess
+
+        self.viewer = viewer
+        self.path = path
+        self.stride = max(1, stride)
+        self.count = 0
+        self.written = 0
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._process = subprocess.Popen(
+            [
+                _ffmpeg_executable(),
+                "-y",
+                "-loglevel",
+                "error",
+                "-f",
+                "rawvideo",
+                "-pix_fmt",
+                "rgba",
+                "-s",
+                f"{size[0]}x{size[1]}",
+                "-r",
+                f"{fps:.4f}",
+                "-i",
+                "-",
+                "-an",
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-crf",
+                "18",
+                "-movflags",
+                "+faststart",
+                str(path),
+            ],
+            stdin=subprocess.PIPE,
+        )
+
+    def render(self):
+        frame = self.viewer.render()
+        self.count += 1
+        if frame is not None and (self.count - 1) % self.stride == 0:
+            assert self._process.stdin is not None
+            self._process.stdin.write(np.ascontiguousarray(frame, dtype=np.uint8).tobytes())
+            self.written += 1
+        return frame
+
+    def user_requested_close(self) -> bool:
+        return False
+
+    def close(self) -> None:
+        if self._process.stdin is not None:
+            self._process.stdin.close()
+        self._process.wait()
+        self.viewer.close()
+        print(f"Video written: {self.path} ({self.written} frames)")
+
+    def __getattr__(self, name: str):
+        return getattr(self.viewer, name)
+
+
+def _ffmpeg_executable() -> str:
+    import shutil
+
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception as error:  # pragma: no cover - depends on the environment
+        raise RuntimeError("ffmpeg is required for --video; install it or imageio-ffmpeg.") from error
+
+
+def default_headless_export_dir(seed: int | None) -> Path:
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S_%fZ")
+    task_id = "fixed" if seed is None else f"seed_{seed}"
+    return Path(__file__).resolve().parent / "exports" / "runs" / f"{timestamp}_{task_id}"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--embodiment",
+        choices=sorted(task.EMBODIMENTS),
+        default=task.DEFAULT_EMBODIMENT,
+        help=f"embodiment to run (default: {task.DEFAULT_EMBODIMENT})",
+    )
+    randomization = parser.add_mutually_exclusive_group()
+    randomization.add_argument(
+        "--seed",
+        type=lambda value: int(value, 0),
+        help="reproduce a randomized scenario with this seed; if omitted, a new seed is generated",
+    )
+    randomization.add_argument(
+        "--fixed", action="store_true", help="run the deterministic regression scenario"
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="run without a viewer and write a bundle to a unique exports/runs directory",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="run one complete headless episode and validation without writing files",
+    )
+    parser.add_argument(
+        "--plan-only",
+        action="store_true",
+        help="build the scene, run the embodiment's planner, validate it, then exit",
+    )
+    parser.add_argument(
+        "--no-trajopt",
+        action="store_true",
+        help="use direct Cartesian references instead of trajectory optimization",
+    )
+    parser.add_argument(
+        "--allow-failed-grasp",
+        action="store_true",
+        help="complete and export the entire motion even if a physical check fails",
+    )
+    parser.add_argument(
+        "--snapshot",
+        nargs="?",
+        const=str(Path(__file__).resolve().parent / "exports" / "snapshot.png"),
+        metavar="PATH",
+        help="render the planned pre-grasp pose and save one PNG",
+    )
+    parser.add_argument(
+        "--frames",
+        metavar="DIR",
+        help="with the interactive viewer, also save a screenshot every --frame-every rendered frames",
+    )
+    parser.add_argument(
+        "--frame-every", type=int, default=10, help="viewer frames between saved screenshots"
+    )
+    parser.add_argument(
+        "--video",
+        metavar="PATH",
+        help=(
+            "render the episode offscreen with the SuperDex viewer and encode an MP4 "
+            "(no window; combine with --camera/--no-trajectory)"
+        ),
+    )
+    parser.add_argument(
+        "--video-fps", type=float, default=30.0, help="target MP4 frame rate (default: 30)"
+    )
+    parser.add_argument(
+        "--video-size",
+        default="1920x1080",
+        metavar="WxH",
+        help="offscreen render size for --video (default: 1920x1080)",
+    )
+    parser.add_argument(
+        "--camera",
+        choices=sorted(CAMERA_PRESETS),
+        default="front",
+        help="viewer camera preset (default: front; 'plate' and 'side' zoom on the wipe)",
+    )
+    parser.add_argument(
+        "--no-trajectory",
+        action="store_true",
+        help="hide the planned grasp-point trajectory curve in the viewer",
+    )
+    parser.add_argument(
+        "--debugger",
+        action="store_true",
+        help="open the live Mochi debugger and execute the episode at wall-clock speed",
+    )
+    parser.add_argument(
+        "--loop", action="store_true", help="replay successful episodes while the debugger stays attached"
+    )
+    parser.add_argument(
+        "--record-pbr",
+        nargs="?",
+        const=str(Path(__file__).resolve().parent / "exports" / "replay.json"),
+        metavar="PATH",
+        help="run one headless episode and record rigid actor transforms",
+    )
+    parser.add_argument(
+        "--record-blender",
+        metavar="DIR",
+        help=(
+            "run one headless episode and record link transforms, the plate, and the "
+            "deforming sponge surface for offline photorealistic rendering with "
+            "superdex_scenarios/rendering/blender/make_video.py"
+        ),
+    )
+    parser.add_argument(
+        "--export-dir",
+        nargs="?",
+        const=str(Path(__file__).resolve().parent / "exports" / "latest"),
+        metavar="PATH",
+        help=(
+            "run one headless episode and export telemetry, contacts, transforms, "
+            "the phase log, and the plate cleanliness map (default: exports/latest)"
+        ),
+    )
+    parser.add_argument(
+        "--skip-video",
+        action="store_true",
+        help="accepted for parity with the ball-and-bowl runner; this scenario never renders MP4s",
+    )
+    add_replay_arguments(parser)
+    args = parser.parse_args()
+    return args
+
+
+def validate_args(args: argparse.Namespace) -> bool:
+    validate_replay_arguments(args)
+    if args.loop and not args.debugger:
+        raise SystemExit("--loop requires --debugger")
+    if args.headless and (args.debugger or args.loop):
+        raise SystemExit("--headless cannot be combined with --debugger or --loop")
+    exclusive = (
+        args.debugger
+        or args.loop
+        or args.record_pbr is not None
+        or args.export_dir is not None
+        or args.record_blender is not None
+    )
+    if args.dry_run and (exclusive or args.skip_video):
+        raise SystemExit("--dry-run cannot be combined with simulation or export options")
+    if args.plan_only and (exclusive or args.skip_video):
+        raise SystemExit("--plan-only cannot be combined with simulation or export options")
+    if args.snapshot is not None and (
+        args.headless or args.dry_run or args.plan_only or exclusive or args.skip_video
+    ):
+        raise SystemExit("--snapshot cannot be combined with simulation or export options")
+    if args.export_dir is not None and (args.debugger or args.loop or args.record_pbr is not None):
+        raise SystemExit("--export-dir cannot be combined with --debugger, --loop, or --record-pbr")
+    if args.record_blender is not None and (
+        args.debugger or args.loop or args.record_pbr is not None or args.video is not None
+    ):
+        raise SystemExit("--record-blender cannot be combined with --debugger, --loop, --record-pbr, or --video")
+    if args.frames is not None and (
+        args.headless or args.dry_run or args.plan_only or args.debugger or exclusive
+    ):
+        raise SystemExit("--frames requires the interactive viewer (no headless/export options)")
+    if args.video is not None and (
+        args.headless or args.dry_run or args.plan_only or args.debugger or args.loop
+        or args.frames is not None
+    ):
+        raise SystemExit("--video cannot be combined with headless, debugger, or --frames options")
+    return (
+        args.headless
+        and not args.dry_run
+        and not args.plan_only
+        and not args.debugger
+        and args.record_pbr is None
+        and args.export_dir is None
+        and args.record_blender is None
+    )
+
+
+def build_and_plan(
+    context: robotics.RoboticsContext,
+    args: argparse.Namespace,
+    seed: int | None,
+    options: PolicyOptions,
+) -> tuple[task.SpongePlateScenario, EpisodePolicy]:
+    def planner(scenario: task.SpongePlateScenario) -> EpisodePolicy:
+        if args.replay is not None:
+            policy: EpisodePolicy = make_replay_policy(scenario, options, args)
+        else:
+            policy = make_policy(scenario, options)
+        policy.plan()
+        return policy
+
+    layout = load_layout(args.layout)
+    if args.fixed or layout is not None:
+        specification = (
+            task.ScenarioSpecification.from_layout(layout) if layout is not None else None
+        )
+        scenario = task.SpongePlateScenario.build(context, args.embodiment, specification)
+        print(
+            "Scenario: "
+            + ("layout file " + args.layout if layout is not None else "fixed regression configuration")
+            + f"; embodiment: {scenario.embodiment_id}"
+        )
+        try:
+            return scenario, planner(scenario)
+        except Exception:
+            scenario.close()
+            raise
+    assert seed is not None
+    print(f"Scenario random seed: {seed}")
+    return task.SpongePlateScenario.build_randomized(
+        context, seed, args.embodiment, planner=planner
+    )
+
+
+def main() -> None:
+    args = parse_args()
+    automatic_headless_export = validate_args(args)
+    selected_seed = (
+        None
+        if args.fixed or args.layout is not None
+        else (args.seed if args.seed is not None else secrets.randbits(63))
+    )
+    if args.export_dir is not None:
+        export_dir = Path(args.export_dir).expanduser().resolve()
+    elif automatic_headless_export:
+        export_dir = default_headless_export_dir(selected_seed).resolve()
+        print(f"Headless export directory: {export_dir}")
+    else:
+        export_dir = None
+    export_episode_path = export_dir / "episode.json" if export_dir else None
+    options = PolicyOptions(
+        optimize_trajectory=not args.no_trajopt,
+        allow_failed_grasp=args.allow_failed_grasp,
+    )
+
+    physics.initialize(num_worker_threads=0)
+    replay_failed = False
+    scenario: task.SpongePlateScenario | None = None
+    viewer = None
+    runner: EpisodeRunner | None = None
+    recorder: TransformRecorder | None = None
+    telemetry: TelemetryRecorder | None = None
+    try:
+        if args.debugger:
+            debug_server = physics.get_debug_server()
+            if not debug_server.has_started():
+                debug_server.set_coordinate_space(
+                    physics.CoordinateSpace(
+                        axes=physics.CoordinateSpaceAxes.FLU, units_per_meter=1.0
+                    )
+                )
+            if not physics.debugger.attach(timeout_seconds=10.0):
+                raise RuntimeError("Could not attach the Mochi physics debugger.")
+        context = robotics.create_context()
+        try:
+            scenario, policy = build_and_plan(context, args, selected_seed, options)
+        except NotImplementedError as error:
+            if args.plan_only:
+                print(
+                    f"Embodiment {args.embodiment!r} scene built; "
+                    f"policy unimplemented: {error}"
+                )
+                return
+            raise
+        task_payload = scenario.specification.to_dict()
+        cameras = camera_payloads(scenario.bot_info)
+        scenario_payload = {"embodiment": scenario.embodiment_id, **task_payload}
+        print(json.dumps(scenario_payload, indent=2))
+
+        points = policy.trajectory_points()
+        if args.plan_only:
+            routes = split_routes(points)
+            print(
+                f"Plan valid: {sum(len(r) for r in routes)} displayed trajectory points "
+                f"in {len(routes)} route(s)."
+            )
+            return
+        if args.snapshot is not None:
+            scenario.bot_info.actor.set_articulated_pose_from_joints(
+                np.asarray(policy.preshape_pose(), dtype=NP_REAL)
+            )
+            viewer = create_viewer(scenario, points)
+            viewer.set_camera_view(look_from=[0.48, -0.76, 0.68], look_at=[0.0, -0.16, 0.43])
+            viewer.render()
+            import polyscope as ps
+
+            snapshot_path = Path(args.snapshot).expanduser().resolve()
+            snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+            ps.screenshot(str(snapshot_path), transparent_bg=False, include_UI=False)
+            print(f"Simulator snapshot: {snapshot_path}")
+            return
+
+        if args.kinematic:
+            controller, controller_target = None, None
+        else:
+            controller, controller_target = create_pose_controller(scenario.bot_info)
+        interactive = (
+            not args.headless
+            and not args.dry_run
+            and not args.debugger
+            and args.record_pbr is None
+            and export_dir is None
+            and args.record_blender is None
+        )
+        if interactive or args.video is not None:
+            look_from, look_at = CAMERA_PRESETS[args.camera]
+            video_size = None
+            if args.video is not None:
+                width, height = (int(v) for v in args.video_size.lower().split("x"))
+                video_size = (width, height)
+            viewer = create_viewer(
+                scenario,
+                points,
+                show_trajectory=not args.no_trajectory,
+                look_from=look_from,
+                look_at=look_at,
+                size=video_size,
+                offscreen=args.video is not None,
+            )
+            if args.video is not None:
+                render_fps = 1.0 / (task.TIME_STEP * task.RENDER_EVERY_STEPS)
+                stride = max(1, round(render_fps / args.video_fps))
+                viewer = VideoWriter(
+                    viewer,
+                    Path(args.video).expanduser().resolve(),
+                    fps=render_fps / stride,
+                    stride=stride,
+                    size=video_size,
+                )
+
+        frame_callbacks = []
+        if args.record_pbr is not None or export_dir is not None:
+            recorder = TransformRecorder(
+                scenario.scene,
+                time_step=task.TIME_STEP,
+                render_every_steps=task.RENDER_EVERY_STEPS,
+                task=task_payload,
+                embodiment=scenario.embodiment_id,
+                cameras=cameras,
+                render_manifest="",
+                render_overrides={
+                    "soft_sponge": {
+                        "scale": task.SPONGE_SIZE.tolist(),
+                        "color": list(scenario.specification.sponge_color.rgb),
+                    },
+                    "ceramic_plate": {"color": task.PLATE_COLOR.tolist()},
+                },
+            )
+            recorder.capture()
+            frame_callbacks.append(recorder.capture)
+        if args.frames is not None:
+            frame_callbacks.append(FrameSaver(Path(args.frames).expanduser(), args.frame_every))
+        blender_recorder = None
+        if args.record_blender is not None:
+            from superdex_scenarios.rendering.blender.recorder import BlenderSceneRecorder
+
+            plate_assets = task.SCENARIO_ROOT / "assets" / "ycb_029_plate"
+            model = scenario.workcell.plate_model
+            blender_recorder = BlenderSceneRecorder(
+                scenario.scene,
+                time_step=task.TIME_STEP,
+                render_every_steps=task.RENDER_EVERY_STEPS,
+                cameras={
+                    **{
+                        name: {
+                            "kind": "fixed",
+                            "look_from": list(look_from),
+                            "look_at": list(look_at),
+                            **({"up_world": [1.0, 0.0, 0.0]} if name == "top" else {}),
+                        }
+                        for name, (look_from, look_at) in CAMERA_PRESETS.items()
+                    },
+                    **{str(camera["name"]): camera for camera in cameras},
+                },
+                materials={
+                    **{actor.get_name(): "wood" for actor in scenario.workcell.desk_actors},
+                    "ceramic_plate": "ceramic",
+                    "soft_sponge": "sponge",
+                    "ground": "floor",
+                },
+                colors={
+                    "soft_sponge": list(scenario.specification.sponge_color.rgb),
+                    "ceramic_plate": task.PLATE_COLOR.tolist(),
+                },
+                overrides={
+                    # Draw the textured scan instead of the solidified physics mesh,
+                    # shifted the same way the physics mesh was (lowest point on the
+                    # desk, dish centred on plate_xy).
+                    "ceramic_plate": {
+                        "obj": str(plate_assets / "textured.obj"),
+                        "texture": str(plate_assets / "texture_map.png"),
+                        "offset": [
+                            -float(model.center_xy[0]),
+                            -float(model.center_xy[1]),
+                            -float(model.scan_min_z),
+                        ],
+                    }
+                },
+                hidden=set(scenario.bot_info.hidden_render_link_names) | {"ground"},
+                metadata=scenario_payload,
+            )
+            blender_recorder.capture()
+            frame_callbacks.append(blender_recorder.capture)
+        if export_dir is not None:
+            export_dir.mkdir(parents=True, exist_ok=True)
+            (export_dir / "scenario.json").write_text(
+                json.dumps(scenario_payload, indent=2) + "\n", encoding="utf-8"
+            )
+            telemetry = None if args.kinematic else TelemetryRecorder(
+                scenario, export_dir, time_step=task.TIME_STEP, cameras=cameras
+            )
+
+        def frame_callback() -> None:
+            for callback in frame_callbacks:
+                callback()
+
+        runner = EpisodeRunner(
+            scenario,
+            controller,
+            controller_target,
+            viewer,
+            real_time=args.debugger or (viewer is not None and args.video is None),
+            allow_failed_grasp=args.allow_failed_grasp,
+            frame_callback=frame_callback if frame_callbacks else None,
+            step_callback=telemetry.record_sample if telemetry is not None else None,
+            phase_sequence=getattr(policy, "phase_sequence", None),
+            kinematic=args.kinematic,
+        )
+        home_pose = policy.home_pose()
+        runner.reset_episode(home_pose)
+        if args.no_objects:
+            runner.park_objects()
+            print("Task objects parked away from the desk; success is not evaluated.")
+        if args.debugger:
+            runner.hold_pose(home_pose, 1.5)
+        uncontrolled = np.ones(scenario.bot_info.actor.get_num_dofs(), dtype=bool)
+        uncontrolled[scenario.bot_info.controlled_dofs] = False
+        episode_number = 0
+        while True:
+            episode_number += 1
+            completed = runner.run(policy)
+            if args.debugger and completed:
+                runner.hold_pose(home_pose, 1.0)
+            final_sponge = runner.sponge_position()
+            final_pose = runner.measured_pose()
+            parked_drift = (
+                float(
+                    np.max(
+                        np.abs(
+                            final_pose[uncontrolled]
+                            - scenario.bot_info.default_pose[uncontrolled]
+                        )
+                    )
+                )
+                if np.any(uncontrolled)
+                else 0.0
+            )
+            coverage = runner.coverage
+            returned = scenario.specification.sponge_returned(final_sponge)
+            evaluated = not (args.no_objects or args.kinematic)
+            success: bool | None = (
+                bool(completed and coverage >= task.CLEAN_SUCCESS_COVERAGE and returned)
+                if evaluated
+                else None
+            )
+            print(
+                f"Episode {episode_number} {'complete' if completed else 'stopped'}; "
+                f"plate coverage {100 * coverage:.0f}% (need {100 * task.CLEAN_SUCCESS_COVERAGE:.0f}%), "
+                f"peak plate normal force {runner.cleanliness.peak_plate_normal_force:.2f} N, "
+                f"sponge at {np.round(final_sponge, 3).tolist()}, returned={returned}, "
+                f"clean={success}, parked-side drift={parked_drift:.2e} rad."
+            )
+            result_payload = {
+                "task": "sponge_plate",
+                "mode": "replay" if args.replay is not None else "policy",
+                "kinematic": bool(args.kinematic),
+                "objects_present": not args.no_objects,
+                "completed": bool(completed),
+                "success": success,
+                "coverage": float(coverage) if evaluated else None,
+                "required_coverage": task.CLEAN_SUCCESS_COVERAGE,
+                "sponge_returned": bool(returned) if evaluated else None,
+                "peak_plate_normal_force_n": float(runner.cleanliness.peak_plate_normal_force),
+                "final_sponge_position_m": np.round(final_sponge, 4).tolist(),
+                "parked_side_drift_rad": parked_drift,
+                "simulated_time_s": runner.executor.step_count * task.TIME_STEP,
+                "scenario": scenario_payload,
+            }
+            if hasattr(policy, "summary"):
+                result_payload["replay"] = policy.summary()
+            if args.replay is not None or args.result is not None:
+                write_result(result_payload, export_dir, args.result)
+            if recorder is not None:
+                recorder.capture()
+                recording_path = (
+                    export_episode_path
+                    if export_episode_path is not None
+                    else Path(args.record_pbr).expanduser().resolve()
+                )
+                recorder.save(recording_path)
+            if blender_recorder is not None:
+                blender_recorder.capture()
+                blender_recorder.save(Path(args.record_blender).expanduser().resolve())
+            if export_dir is not None:
+                runner.phases.save(export_dir / "phases.json")
+                (export_dir / "cleanliness.json").write_text(
+                    json.dumps(runner.cleanliness.map.to_dict(), separators=(",", ":")) + "\n",
+                    encoding="utf-8",
+                )
+            if (
+                (args.headless or export_dir is not None)
+                and completed
+                and success is False
+                and not args.allow_failed_grasp
+                and args.replay is None
+            ):
+                raise RuntimeError("Headless episode completed without cleaning the plate.")
+            if args.replay is not None and success is False:
+                replay_failed = True
+            if not (args.loop and completed and success and physics.debugger.is_attached()):
+                break
+            runner.hold_pose(home_pose, 1.5)
+            runner.reset_episode(home_pose)
+            runner.hold_pose(home_pose, 1.0)
+            print("Replaying episode...")
+    finally:
+        if runner is not None:
+            runner.close()
+        if viewer is not None:
+            viewer.close()
+        if telemetry is not None:
+            telemetry.close()
+        if scenario is not None:
+            scenario.close()
+        physics.shutdown()
+    if replay_failed:
+        raise SystemExit(2)
+
+
+if __name__ == "__main__":
+    main()

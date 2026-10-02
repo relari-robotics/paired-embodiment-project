@@ -173,11 +173,39 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--camera",
-        default="desk_zed",
-        help="camera name embedded in the replay (default: desk_zed)",
+        default="desk_gemini_335",
+        help="camera name embedded in the replay (default: desk_gemini_335)",
     )
     parser.add_argument("--fps", type=float, default=30.0)
     parser.add_argument("--crf", type=int, default=18)
+    parser.add_argument(
+        "--look-from",
+        type=float,
+        nargs=3,
+        metavar=("X", "Y", "Z"),
+        default=None,
+        help="render from a free camera at this world position (metres) instead of --camera",
+    )
+    parser.add_argument(
+        "--look-at",
+        type=float,
+        nargs=3,
+        metavar=("X", "Y", "Z"),
+        default=None,
+        help="free camera aim point (metres; required with --look-from)",
+    )
+    parser.add_argument(
+        "--fov",
+        type=float,
+        default=45.0,
+        help="free camera vertical field of view in degrees",
+    )
+    parser.add_argument(
+        "--size",
+        default="1920x1080",
+        metavar="WxH",
+        help="free camera frame size (default: 1920x1080)",
+    )
     return parser.parse_args()
 
 
@@ -223,8 +251,17 @@ def export_video(
     output_path: Path,
     fps: float,
     crf: int,
-    camera_name: str = "desk_zed",
+    camera_name: str = "desk_gemini_335",
+    *,
+    free_camera: dict | None = None,
+    size: tuple[int, int] = (1920, 1080),
 ) -> None:
+    """Render ``episode_path`` to ``output_path``.
+
+    ``free_camera`` (``{"look_from": [x, y, z], "look_at": [x, y, z],
+    "fov_deg": f}`` in simulation metres) renders from an arbitrary viewpoint
+    at ``size`` instead of one of the replay's calibrated cameras.
+    """
     episode_path = episode_path.expanduser().resolve()
     output_path = output_path.expanduser().resolve()
     if not episode_path.is_file():
@@ -234,6 +271,13 @@ def export_video(
     if not 0 <= crf <= 51:
         raise ValueError("--crf must be between 0 and 51")
     ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        try:
+            import imageio_ffmpeg
+
+            ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:  # pragma: no cover - depends on the environment
+            ffmpeg = None
     geckodriver = shutil.which("geckodriver")
     if ffmpeg is None:
         raise RuntimeError("ffmpeg is required to export MP4 video.")
@@ -243,22 +287,33 @@ def export_video(
 
     replay = json.loads(episode_path.read_text(encoding="utf-8"))
     replay_duration = (len(replay["frames"]) - 1) / float(replay["fps"])
-    camera_metadata = next(
-        (
-            camera
-            for camera in replay.get("cameras", ())
-            if camera.get("name") == camera_name
-        ),
-        None,
-    )
-    if camera_metadata is None:
-        available = [camera.get("name") for camera in replay.get("cameras", ())]
-        raise ValueError(
-            f"Replay has no camera {camera_name!r}; available cameras: {available}"
+    if free_camera is not None:
+        camera_metadata = {"name": "free", "kind": "free", **free_camera}
+        width, height = int(size[0]), int(size[1])
+        load_camera = str(
+            replay.get("cameras", [{"name": "desk_gemini_335"}])[0].get(
+                "name", "desk_gemini_335"
+            )
         )
-    intrinsics = camera_metadata["intrinsics"]
-    width = int(intrinsics["width_px"])
-    height = int(intrinsics["height_px"])
+        camera_name = "free"
+    else:
+        camera_metadata = next(
+            (
+                camera
+                for camera in replay.get("cameras", ())
+                if camera.get("name") == camera_name
+            ),
+            None,
+        )
+        if camera_metadata is None:
+            available = [camera.get("name") for camera in replay.get("cameras", ())]
+            raise ValueError(
+                f"Replay has no camera {camera_name!r}; available cameras: {available}"
+            )
+        intrinsics = camera_metadata["intrinsics"]
+        width = int(intrinsics["width_px"])
+        height = int(intrinsics["height_px"])
+        load_camera = camera_name
     frame_count = round(replay_duration * fps) + 1
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -272,15 +327,16 @@ def export_video(
         driver.start()
         url = (
             f"http://127.0.0.1:{server.server_port}/superdex_scenarios/rendering/pbr/"
-            f"?recording=/__episode__.json&export=1&camera={camera_name}"
+            f"?recording=/__episode__.json&export=1&camera={load_camera}"
         )
         driver.navigate(url)
         _wait_for_viewer(driver)
         configured = driver.execute(
-            "return window.superdexExport.configure(arguments[0], arguments[1], arguments[2]);",
+            "return window.superdexExport.configure(arguments[0], arguments[1], arguments[2], arguments[3]);",
             width,
             height,
             camera_name,
+            free_camera,
         )
         assert isinstance(configured, dict)
 
@@ -384,7 +440,25 @@ def main() -> None:
         / "latest"
         / f"{args.camera}.mp4"
     )
-    export_video(args.episode, output, args.fps, args.crf, args.camera)
+    free_camera = None
+    if args.look_from is not None or args.look_at is not None:
+        if args.look_from is None or args.look_at is None:
+            raise SystemExit("--look-from and --look-at must be given together")
+        free_camera = {
+            "look_from": args.look_from,
+            "look_at": args.look_at,
+            "fov_deg": args.fov,
+        }
+    width, height = (int(v) for v in args.size.lower().split("x"))
+    export_video(
+        args.episode,
+        output,
+        args.fps,
+        args.crf,
+        args.camera,
+        free_camera=free_camera,
+        size=(width, height),
+    )
 
 
 if __name__ == "__main__":

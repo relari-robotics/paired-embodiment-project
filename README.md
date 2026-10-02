@@ -27,15 +27,15 @@ randomized object positions for dataset generation and robustness checks.
 
 One runner drives every embodiment through the same pipeline: scene
 construction, the compliant pose controller, physics stepping, transform and
-telemetry recording, a semantic phase log, the in-bowl success check, and
+telemetry recording, a semantic phase log, the success check, and
 export. What differs per embodiment is an **episode policy** -- how the grasp
 is solved, how the trajectory is planned, how the jaws or fingers close, and
 how the ball is carried and released:
 
-- **OpenArm v2 reference** ([`openarm_policy.py`](scenarios/ball_bowl/openarm_policy.py)):
+- **OpenArm v2 reference** ([`embodiments/openarm_v2/policy.py`](scenarios/ball_bowl/embodiments/openarm_v2/policy.py)):
   a complete policy that plans with collision-aware trajectory optimization and
   closes two parallel jaws.
-- **Human Meta XR hand project** ([`human_project.py`](scenarios/ball_bowl/human_project.py)):
+- **Human Meta XR hand project** ([`embodiments/human_right_hand/policy.py`](scenarios/ball_bowl/embodiments/human_right_hand/policy.py)):
   a physical 27-DOF hand on a six-DOF Cartesian carrier in the same workcell.
   Its policy is intentionally blank; the grasp, wrist trajectory, finger
   control, and carry strategy are the project.
@@ -44,17 +44,86 @@ The contract both implement is `EpisodePolicy` in
 [`episode.py`](scenarios/ball_bowl/episode.py): `plan()`, `trajectory_points()`,
 `home_pose()`, `preshape_pose()`, and `run(runner)`, where the runner offers
 `follow`, `hold`, `phase`, `check_grasp_alignment`, and
-`verify_physical_grasp`. Embodiments are registered in `EMBODIMENTS`
-([`scenario.py`](scenarios/ball_bowl/scenario.py)) with their builder,
-kinematic twin, render manifest, and policy class; camera metadata comes from
+`verify_physical_grasp`. Each embodiment is a subfolder of
+[`embodiments/`](scenarios/ball_bowl/embodiments) holding everything specific to that body -- how it is
+built (`embodiment.py`), its policies, its teleoperation mapping, and its
+Studio render scene -- and registers itself in `embodiments.EMBODIMENTS` with
+its builder, kinematic twins, render manifest, and policy classes; camera metadata comes from
 the shared scenario calibration and built embodiment model. This lets
 `runner.py --embodiment <id>` run either one. The contract does not prescribe
 an algorithm: optimization, motion capture, learning, teleoperation, and other
 approaches are all valid. See [`PROJECT.md`](PROJECT.md) for the detailed task
 goals and success criteria.
 
-The old `scenarios/openarm_ball_bowl` import and executable paths remain as
-compatibility shims.
+### Variant: move the bowl, then the ball into it
+
+The bowl is a dynamic body by default, so it can be pushed, dragged, or
+knocked over. Only `--fixed` -- the original regression scene -- bolts it to
+the desk (a `--layout` can ask for the same with `"bowl_static": true`).
+`--move-bowl` (or a `--layout` with a `bowl_target_xy`) turns
+that into a bimanual task on the same workcell: the bowl starts on the robot's
+left, the **left** arm drags it by its rim to a target region, and the
+**right** arm then drops the ball into it. It needs a two-armed embodiment
+(`openarm_v2_bimanual`, the default). See
+[`MOVE_BOWL.md`](scenarios/ball_bowl/MOVE_BOWL.md).
+
+```bash
+docker compose run --rm --entrypoint python superdex scenarios/ball_bowl/runner.py --fixed --move-bowl --dry-run
+```
+
+## Open-loop trajectory replay
+
+Every runner accepts `--replay FILE` to execute a joint trajectory file
+([`TRAJECTORY.md`](TRAJECTORY.md)) instead of its scripted policy, through the
+same controller, physics, recording, and success check; `--kinematic` skips
+the physics, `--no-objects` parks the task objects, `--layout FILE` overrides
+object placements, and `result.json` reports the outcome and tracking error.
+`tools/trajectory_from_export.py` turns any exported bundle into such a file;
+`tools/openarm_kinematics.py` exports the joint tree and evaluates the
+simulator's forward and inverse kinematics; and
+`superdex_scenarios/retargeting/demo.py` loads recorded human hand tracks.
+This is the basis of the human-to-robot retargeting project distributed as a
+separate package.
+
+## Scenario: sponge wipes plate
+
+[`scenarios/sponge_plate`](scenarios/sponge_plate) is a second task on the same
+workcell and runner contract: a soft finite-element sponge is picked up, pressed
+onto a scanned ceramic plate, dragged through three serpentine strokes until a
+cleanliness map of the dish floor is wiped, and put back on the desk. The
+sponge is held by pinch friction alone and visibly squashes and shears. See its
+[README](scenarios/sponge_plate/README.md) for the physics, randomization,
+exports, the viewer and MP4 options for watching the deformation, and the
+Blender pipeline for photorealistic renders:
+
+```bash
+docker compose run --rm --entrypoint python superdex scenarios/sponge_plate/runner.py --fixed --dry-run
+```
+
+## Scenario: assemble and pack an organizer
+
+[`scenarios/organizer`](scenarios/organizer/README.md) uses the same table and
+OpenArm to insert two physical dividers and sort three parts into compartments.
+Its state-based policy recomputes grasps, paths, and placement targets from
+actual poses, supports seeded position variation and explicit layout files,
+and exports joint trajectories, contact forces, object motion, and Blender
+recordings. The tray is fixed; the dividers and parts move through contact.
+
+```bash
+docker compose run --rm --entrypoint python superdex -m scenarios.organizer --fixed --dry-run
+```
+
+## Scenario: sort wrapped tea
+
+[`scenarios/tea_sorting`](scenarios/tea_sorting/README.md) sorts red, yellow, and
+blue wrapped tea sachets into a wooden container on the same table. It combines
+a pose-relative physical grasping policy with a dedicated Cycles replay renderer:
+8K photographed wood, printed sachets, paper microtexture, heat seals, and creases.
+Packets currently use rigid contact physics; paper bending is not simulated.
+
+```bash
+docker compose run --rm --entrypoint python superdex -m scenarios.tea_sorting --fixed --dry-run
+```
 
 ## Setup
 
@@ -172,7 +241,7 @@ Read [`PROJECT.md`](PROJECT.md), then verify the untouched physical scaffold:
 docker compose run --rm superdex --human --fixed --plan-only
 ```
 
-Implement `HumanPolicy` in [`human_project.py`](scenarios/ball_bowl/human_project.py), using [`openarm_policy.py`](scenarios/ball_bowl/openarm_policy.py) as the worked reference for the same contract. Before it is implemented, `--plan-only` reports that the scene was built and the policy is unimplemented, and a normal human invocation raises `NotImplementedError` by design:
+Implement `HumanPolicy` in [`embodiments/human_right_hand/policy.py`](scenarios/ball_bowl/embodiments/human_right_hand/policy.py), using [`embodiments/openarm_v2/policy.py`](scenarios/ball_bowl/embodiments/openarm_v2/policy.py) as the worked reference for the same contract. Before it is implemented, `--plan-only` reports that the scene was built and the policy is unimplemented, and a normal human invocation raises `NotImplementedError` by design:
 
 ```bash
 docker compose run --rm superdex --human --fixed
@@ -286,6 +355,22 @@ http://localhost:8765/superdex_scenarios/rendering/pbr/?recording=/scenarios/bal
 ```
 
 The browser provides play/pause, timeline scrubbing, playback speed, orbit controls, and the cameras present in the replay.
+
+### Live Kyber teleoperation
+
+The ball-and-bowl runner can receive calibrated bimanual hand poses from a
+local Kyber process:
+
+```bash
+python scenarios/ball_bowl/runner.py --fixed --teleop
+```
+
+The runner binds UDP `127.0.0.1:7447`, verifies that the packet's active Gemini
+profile hash matches the profile used by the scene, and maps both hands through
+`scenarios/ball_bowl/embodiments/openarm_v2/teleop_mapping.json`. Stale, unreachable, or colliding
+targets hold the affected arm; the bowl is not an obstacle for teleoperation,
+so the operator can grab and move it. Non-interactive runs require an explicit
+`--teleop-duration`.
 
 ### Published-image limitations
 

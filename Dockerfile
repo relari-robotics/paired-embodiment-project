@@ -41,7 +41,7 @@ ARG SUPERDEX_VERSION
 ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN pip install --no-cache-dir "superdex-lab==${SUPERDEX_VERSION}" \
+RUN pip install --no-cache-dir "superdex-lab==${SUPERDEX_VERSION}" "platformdirs>=4.3" \
     # The scenario's video exporter looks for `ffmpeg` on PATH; imageio-ffmpeg
     # (a superdex-physics dependency) already bundles a static ffmpeg build, so
     # expose it instead of installing the ~300 MB Debian ffmpeg stack.
